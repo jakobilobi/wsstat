@@ -3,21 +3,42 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/jakobilobi/go-wsstat"
 )
 
+var (
+	// CLI flags
+	showVersion bool
+	message     string
+
+	version = "under development"
+)
+
+func init() {
+	flag.StringVar(&message, "m", "", "[optional] The message to send to the target server")
+	flag.BoolVar(&showVersion, "v", false, "Print the program's version")
+
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [options] <url>\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+}
+
 func main() {
 	flag.Parse()
 
-	// Get the first argument
+	if showVersion {
+		fmt.Printf("Version: %s\n", version)
+		os.Exit(0)
+	}
+
 	args := flag.Args()
-	if len(args) == 1 {
-		// Print the first argument
-		fmt.Printf("Input arg: %s\n\n", args[0])
-	} else {
-		fmt.Println("No or too many input arg")
-		return
+	if len(args) != 1 {
+		fmt.Print("Use only a single input argument, the URL of the target server.\n\n")
+		flag.Usage()
+		os.Exit(2)
 	}
 
 	result, _, err := wsstat.MeasureLatency(args[0], "testing")
