@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 
@@ -53,7 +54,7 @@ func main() {
 	// TODO: add support for more advanced parsing, to simplify program usage (e.g. no need to specify the protocol)
 	url, err := url.Parse(args[0])
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalf("Error parsing URL: %v", err)
 		return
 	}
 
@@ -62,7 +63,7 @@ func main() {
 	if textMessage != "" {
 		result, response, err = wsstat.MeasureLatency(url.String(), textMessage) // TODO: change to use url.URL when wsstat is updated
 		if err != nil {
-			fmt.Println(err)
+			log.Fatalf("Error measuring latency: %v", err)
 			return
 		}
 	} else if jsonMessage != "" {
@@ -77,13 +78,13 @@ func main() {
 		}
 		result, response, err = wsstat.MeasureLatencyJSON(url.String(), msg) // TODO: change to use url.URL when wsstat is updated
 		if err != nil {
-			fmt.Println(err)
+			log.Fatalf("Error measuring latency: %v", err)
 			return
 		}
 	} else {
 		result, err = wsstat.MeasureLatencyPing(url.String()) // TODO: change to use url.URL when wsstat is updated
 		if err != nil {
-			fmt.Println(err)
+			log.Fatalf("Error measuring latency: %v", err)
 			return
 		}
 	}
