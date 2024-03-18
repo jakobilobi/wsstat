@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/jakobilobi/go-wsstat"
@@ -49,11 +50,17 @@ func main() {
 		os.Exit(2)
 	}
 
+	// TODO: add support for more advanced parsing, to simplify program usage (e.g. no need to specify the protocol)
+	url, err := url.Parse(args[0])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	var result wsstat.Result
 	var response interface{}
-	var err error
 	if textMessage != "" {
-		result, response, err = wsstat.MeasureLatency(args[0], textMessage)
+		result, response, err = wsstat.MeasureLatency(url.String(), textMessage) // TODO: change to use url.URL when wsstat is updated
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -68,13 +75,13 @@ func main() {
 			Id: "1",
 			RpcVersion: "2.0",
 		}
-		result, response, err = wsstat.MeasureLatencyJSON(args[0], msg)
+		result, response, err = wsstat.MeasureLatencyJSON(url.String(), msg) // TODO: change to use url.URL when wsstat is updated
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 	} else {
-		result, err = wsstat.MeasureLatencyPing(args[0])
+		result, err = wsstat.MeasureLatencyPing(url.String()) // TODO: change to use url.URL when wsstat is updated
 		if err != nil {
 			fmt.Println(err)
 			return
