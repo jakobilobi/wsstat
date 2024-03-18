@@ -40,7 +40,6 @@ func main() {
 
 	args := flag.Args()
 	if len(args) != 1 {
-		fmt.Print("Use only a single input argument, the URL of the target server.\n\n")
 		flag.Usage()
 		os.Exit(2)
 	}
