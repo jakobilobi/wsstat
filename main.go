@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/jakobilobi/go-wsstat"
 )
@@ -90,16 +91,7 @@ func main() {
 		}
 	}
 
-	// Print the latency
-	fmt.Printf("Results: \n%+v", result)
-
-	if responseMap, ok := response.(map[string]interface{}) ; ok {
-		fmt.Printf("\nResponse: %v\n", responseMap)
-	} else if responseArray, ok := response.([]interface{}) ; ok {
-		fmt.Printf("\nResponse: %v\n", responseArray)
-	} else if responseBytes, ok := response.([]byte) ; ok {
-		fmt.Printf("\nResponse: %v\n", responseBytes)
-	}
+	printResults(result, response)
 }
 
 // parseWsUri parses the rawURI string into a URL object.
@@ -118,4 +110,50 @@ func parseWsUri(rawURI string) (*url.URL, error) {
 	}
 
 	return url, nil
+}
+
+// printResults formats and prints the WebSocket statistics to the terminal.
+// TODO: consider adding some color to make the output more readable
+func printResults(result wsstat.Result, response interface{}) {
+	const padding = 2
+	fmt.Println()
+
+	// Header
+	// TODO: activate these when the info is available from Result
+	/* fmt.Print("Connected to <WS URL>\n\n")
+	fmt.Printf("Connected via %s\t\n\n", "<TLS version>") */
+
+	if responseMap, ok := response.(map[string]interface{}) ; ok {
+		fmt.Printf("Response: %v\n\n", responseMap)
+	} else if responseArray, ok := response.([]interface{}) ; ok {
+		fmt.Printf("Response: %v\n\n", responseArray)
+	} else if responseBytes, ok := response.([]byte) ; ok {
+		fmt.Printf("Response: %v\n\n", responseBytes)
+	}
+
+	// Tab writer to help with formatting a tab-separated output
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.TabIndent)
+
+	// Add headers for the printout
+	headers := []string{"DNS Lookup", "TCP Connection", "TLS Handshake", "WS Handshake", "Message Round-Trip", "Connection Close"}
+	fmt.Fprintln(w, strings.Join(headers, "\t|\t")+"\t")
+
+	// Add the result numbers
+	stats := []string{
+		fmt.Sprintf("%dms", result.DNSLookup.Milliseconds()),
+		fmt.Sprintf("%dms", result.TCPConnection.Milliseconds()),
+		fmt.Sprintf("%dms", result.TLSHandshake.Milliseconds()),
+		fmt.Sprintf("%dms", result.WSHandshake.Milliseconds()),
+		fmt.Sprintf("%dms", result.MessageRoundTrip.Milliseconds()),
+		fmt.Sprintf("%dms", result.ConnectionClose.Milliseconds()),
+	}
+	fmt.Fprintln(w, strings.Join(stats, "\t|\t")+"\t")
+
+	// Write the tabbed output to the writer, flush it to stdout
+	if err := w.Flush(); err != nil {
+		panic(err)
+	}
+
+	// Finally, print the total time
+	fmt.Printf("\nTotal time:\t%s\t\n", fmt.Sprintf("%dms", result.TotalTime.Milliseconds()))
 }
