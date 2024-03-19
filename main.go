@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/jakobilobi/go-wsstat"
 )
@@ -14,6 +15,7 @@ var (
 	// CLI flags
 	jsonMessage string
 	textMessage string
+	insecure	bool
 	showVersion bool
 
 	version = "under development"
@@ -22,6 +24,7 @@ var (
 func init() {
 	flag.StringVar(&textMessage, "text", "", "A text message to send to the target server. Response will be printed.")
 	flag.StringVar(&jsonMessage, "json", "", "A JSON RPC message to send to the target server. Response will be printed.")
+	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input.")
 	flag.BoolVar(&showVersion, "v", false, "Print the version.")
 
 	flag.Usage = func() {
@@ -50,10 +53,9 @@ func main() {
 		os.Exit(2)
 	}
 
-	// TODO: add support for more advanced parsing, to simplify program usage (e.g. no need to specify the protocol)
-	url, err := url.Parse(args[0])
+	url, err := parseWsUri(args[0])
 	if err != nil {
-		log.Fatalf("Error parsing URL: %v", err)
+		log.Fatalf("Error parsing input URI: %v", err)
 		return
 	}
 
@@ -98,4 +100,22 @@ func main() {
 	} else if responseBytes, ok := response.([]byte) ; ok {
 		fmt.Printf("\nResponse: %v\n", responseBytes)
 	}
+}
+
+// parseWsUri parses the rawURI string into a URL object.
+func parseWsUri(rawURI string) (*url.URL, error) {
+	if !strings.Contains(rawURI, "://") {
+		scheme := "wss://"
+		if insecure {
+			scheme = "ws://"
+		}
+		rawURI = scheme + rawURI
+	}
+
+	url, err := url.Parse(rawURI)
+	if err != nil{
+		return nil, err
+	}
+
+	return url, nil
 }
