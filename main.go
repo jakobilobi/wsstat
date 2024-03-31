@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -63,7 +64,7 @@ func main() {
 	var result wsstat.Result
 	var response interface{}
 	if textMessage != "" {
-		result, response, err = wsstat.MeasureLatency(url.String(), textMessage) // TODO: change to use url.URL when wsstat is updated
+		result, response, err = wsstat.MeasureLatency(url, textMessage, http.Header{}) // TODO: make headers configurable
 		if err != nil {
 			log.Fatalf("Error measuring latency: %v", err)
 			return
@@ -78,13 +79,13 @@ func main() {
 			Id: "1",
 			RpcVersion: "2.0",
 		}
-		result, response, err = wsstat.MeasureLatencyJSON(url.String(), msg) // TODO: change to use url.URL when wsstat is updated
+		result, response, err = wsstat.MeasureLatencyJSON(url, msg, http.Header{}) // TODO: make headers configurable
 		if err != nil {
 			log.Fatalf("Error measuring latency: %v", err)
 			return
 		}
 	} else {
-		result, err = wsstat.MeasureLatencyPing(url.String()) // TODO: change to use url.URL when wsstat is updated
+		result, err = wsstat.MeasureLatencyPing(url, http.Header{}) // TODO: make headers configurable
 		if err != nil {
 			log.Fatalf("Error measuring latency: %v", err)
 			return
@@ -124,6 +125,7 @@ func printResults(result wsstat.Result, response interface{}) {
 	fmt.Printf("Connected via %s\t\n\n", "<TLS version>") */
 
 	if responseMap, ok := response.(map[string]interface{}) ; ok {
+		// TODO: print the response in a more readable format
 		fmt.Printf("Response: %v\n\n", responseMap)
 	} else if responseArray, ok := response.([]interface{}) ; ok {
 		fmt.Printf("Response: %v\n\n", responseArray)
