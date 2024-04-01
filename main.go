@@ -7,33 +7,33 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/jakobilobi/go-wsstat"
 )
 
 const (
 	wssPrintTemplate = `` +
-		`  DNS Lookup   TCP Connection   TLS Handshake  WS Handshake   Message Round-Trip   Connection Close` + "\n" +
-		`(%s  |     %s  |    %s  |      %s  |      %s  |       %s  )` + "\n" +
-		`            |                |         |         |                   |                  |` + "\n" +
-		`   DNS lookup:%s      |            |         |                   |                  |` + "\n" +
-		`                       TCP connected:%s   |         |              |                  |` + "\n" +
-		`                                   TLS done:%s         |        |            |` + "\n" +
-		`                                   WS done:%s         |                  |` + "\n" +
-		`                                                     Msg returned:%s        |` + "\n" +
-		`                                                                                Total:%s` + "\n"
+		`  DNS Lookup    TCP Connection    TLS Handshake    WS Handshake    Message RTT` + "\n" +
+		`|%s  |      %s  |     %s  |    %s  |   %s  |` + "\n" +
+		`|           |                 |                |               |              |` + "\n" +
+		`|  DNS lookup:%s        |                |               |              |` + "\n" +
+		`|                 TCP connected:%s       |               |              |` + "\n" +
+		`|                                       TLS done:%s      |              |` + "\n" +
+		`|                                                        WS done:%s     |` + "\n" +
+		`-                                                                         Total:%s` + "\n"
 
 	wsPrintTemplate = `` +
-	`  DNS Lookup   TCP Connection  WS Handshake   Message Round-Trip   Connection Close` + "\n" +
-	`[%s  |     %s  |    %s  |        %s  |       %s  ]` + "\n" +
-	`            |                |               |                   |                  |` + "\n" +
-	`   DNS lookup:%s      |               |                   |                  |` + "\n" +
-	`                       TCP connected:%s   |                   |                  |` + "\n" +
-	`                                   WS done:%s         |                  |` + "\n" +
-	`                                                     Msg returned:%s        |` + "\n" +
-	`                                                                                Total:%s` + "\n"
+	`  DNS Lookup    TCP Connection    WS Handshake    Message RTT` + "\n" +
+	`|%s  |      %s  |    %s  |  %s   |` + "\n" +
+	`|           |                 |               |              |` + "\n" +
+	`|  DNS lookup:%s        |               |              |` + "\n" +
+	`|                 TCP connected:%s      |              |` + "\n" +
+	`|                                       WS done:%s     |` + "\n" +
+	`-                                                        Total:%s` + "\n"
 )
 
 var (
@@ -115,7 +115,24 @@ func main() {
 		}
 	}
 
-	printResults(result, response)
+	// TODO: add something like this when Result is updated to hold header information
+	/* fmt.Print("Connected to <WS URL>\n\n")
+	fmt.Printf("Connected via %s\t\n\n", "<TLS version>") */
+
+	printResponse(response)
+
+	//printResultsSimple(result)
+	printResultsTiered(url, result)
+}
+
+// formatPadLeft formats the duration to a string with padding on the left.
+func formatPadLeft(d time.Duration) string {
+	return fmt.Sprintf("%7dms", int(d/time.Millisecond))
+}
+
+// formatPadRight formats the duration to a string with padding on the right.
+func formatPadRight(d time.Duration) string {
+	return fmt.Sprintf("%-8s", strconv.Itoa(int(d/time.Millisecond))+"ms")
 }
 
 // parseWsUri parses the rawURI string into a URL object.
@@ -136,25 +153,27 @@ func parseWsUri(rawURI string) (*url.URL, error) {
 	return url, nil
 }
 
-// printResults formats and prints the WebSocket statistics to the terminal.
-// TODO: consider adding some color to make the output more readable
-func printResults(result wsstat.Result, response interface{}) {
-	const padding = 2
+// printResponse prints the response to the terminal.
+func printResponse(response interface{}) {
+	if response == nil {
+		return
+	}
 	fmt.Println()
-
-	// Header
-	// TODO: activate these when the info is available from Result
-	/* fmt.Print("Connected to <WS URL>\n\n")
-	fmt.Printf("Connected via %s\t\n\n", "<TLS version>") */
-
 	if responseMap, ok := response.(map[string]interface{}) ; ok {
 		// TODO: print the response in a more readable format
-		fmt.Printf("Response: %v\n\n", responseMap)
+		fmt.Printf("Response: %v\n", responseMap)
 	} else if responseArray, ok := response.([]interface{}) ; ok {
-		fmt.Printf("Response: %v\n\n", responseArray)
+		fmt.Printf("Response: %v\n", responseArray)
 	} else if responseBytes, ok := response.([]byte) ; ok {
-		fmt.Printf("Response: %v\n\n", responseBytes)
+		fmt.Printf("Response: %v\n", responseBytes)
 	}
+}
+
+// printResultsSimple formats and prints the WebSocket statistics to the terminal.
+// TODO: consider adding some color to make the output more readable
+func printResultsSimple(result wsstat.Result) {
+	const padding = 2
+	fmt.Println()
 
 	// Tab writer to help with formatting a tab-separated output
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.TabIndent)
@@ -181,4 +200,40 @@ func printResults(result wsstat.Result, response interface{}) {
 
 	// Finally, print the total time
 	fmt.Printf("\nTotal time:\t%s\t\n", fmt.Sprintf("%dms", result.TotalTime.Milliseconds()))
+}
+
+// printResultsTiered formats and prints the WebSocket statistics to the terminal in a tiered fashion.
+// TODO: consider adding some color to make the output more readable
+func printResultsTiered(url *url.URL ,result wsstat.Result) {
+	fmt.Println()
+	switch url.Scheme {
+	case "wss":
+		fmt.Fprintf(os.Stdout, wssPrintTemplate,
+			formatPadLeft(result.DNSLookup),
+			formatPadLeft(result.TCPConnection),
+			formatPadLeft(result.TLSHandshake),
+			formatPadLeft(result.WSHandshake),
+			formatPadLeft(result.MessageRoundTrip),
+			//formatPadLeft(result.ConnectionClose), // Skipping this for now
+			formatPadRight(result.DNSLookupDone),
+			formatPadRight(result.TCPConnected),
+			formatPadRight(result.TLSHandshakeDone),
+			formatPadRight(result.WSHandshakeDone),
+			//formatPadRight(result.FirstMessageResponse), // Skipping due to ConnectionClose skip
+			formatPadRight(result.TotalTime),
+		)
+	case "ws":
+		fmt.Fprintf(os.Stdout, wsPrintTemplate,
+			formatPadLeft(result.DNSLookup),
+			formatPadLeft(result.TCPConnection),
+			formatPadLeft(result.WSHandshake),
+			formatPadLeft(result.MessageRoundTrip),
+			//formatPadLeft(result.ConnectionClose), // Skipping this for now
+			formatPadRight(result.DNSLookupDone),
+			formatPadRight(result.TCPConnected),
+			formatPadRight(result.WSHandshakeDone),
+			//formatPadRight(result.FirstMessageResponse), // Skipping due to ConnectionClose skip
+			formatPadRight(result.TotalTime),
+		)
+	}
 }
