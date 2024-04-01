@@ -13,6 +13,29 @@ import (
 	"github.com/jakobilobi/go-wsstat"
 )
 
+const (
+	wssPrintTemplate = `` +
+		`  DNS Lookup   TCP Connection   TLS Handshake  WS Handshake   Message Round-Trip   Connection Close` + "\n" +
+		`(%s  |     %s  |    %s  |      %s  |      %s  |       %s  )` + "\n" +
+		`            |                |         |         |                   |                  |` + "\n" +
+		`   DNS lookup:%s      |            |         |                   |                  |` + "\n" +
+		`                       TCP connected:%s   |         |              |                  |` + "\n" +
+		`                                   TLS done:%s         |        |            |` + "\n" +
+		`                                   WS done:%s         |                  |` + "\n" +
+		`                                                     Msg returned:%s        |` + "\n" +
+		`                                                                                Total:%s` + "\n"
+
+	wsPrintTemplate = `` +
+	`  DNS Lookup   TCP Connection  WS Handshake   Message Round-Trip   Connection Close` + "\n" +
+	`[%s  |     %s  |    %s  |        %s  |       %s  ]` + "\n" +
+	`            |                |               |                   |                  |` + "\n" +
+	`   DNS lookup:%s      |               |                   |                  |` + "\n" +
+	`                       TCP connected:%s   |                   |                  |` + "\n" +
+	`                                   WS done:%s         |                  |` + "\n" +
+	`                                                     Msg returned:%s        |` + "\n" +
+	`                                                                                Total:%s` + "\n"
+)
+
 var (
 	// CLI flags
 	jsonMessage string
