@@ -39,21 +39,25 @@ const (
 
 var (
 	// CLI flags
-	jsonMessage string
-	textMessage string
-	insecure	bool
-	showVersion bool
-	verbose		bool
+	jsonMessage  string
+	textMessage  string
+	insecure     bool
+	showVersion  bool
+	verbose      bool
+	extraVerbose bool
 
 	version = "under development"
+
+	verbosity = 0
 )
 
 func init() {
 	flag.StringVar(&textMessage, "text", "", "A text message to send to the target server. Response will be printed.")
 	flag.StringVar(&jsonMessage, "json", "", "A JSON RPC message to send to the target server. Response will be printed.")
 	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input.")
-	flag.BoolVar(&showVersion, "v", false, "Print the version.")
-	flag.BoolVar(&verbose, "verbose", false, "Print verbose output, e.g. includes all headers in the output.")
+	flag.BoolVar(&showVersion, "version", false, "Print the version.")
+	flag.BoolVar(&verbose, "v", false, "Print verbose output, e.g. includes the most important headers.")
+	flag.BoolVar(&extraVerbose, "vv", false, "Print extra verbose output, e.g. includes all headers and certificates.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] <url>\n", os.Args[0])
@@ -87,6 +91,13 @@ func main() {
 		return
 	}
 
+	// Parse the verbosity level
+	if extraVerbose {
+		verbosity = 2
+	} else if verbose {
+		verbosity = 1
+	}
+
 	var result wsstat.Result
 	var response interface{}
 	if textMessage != "" {
@@ -118,12 +129,10 @@ func main() {
 		}
 	}
 
-	// TODO: add something like this when Result is updated to hold header information
-	/* fmt.Print("Connected to <WS URL>\n\n")
-	fmt.Printf("Connected via %s\t\n\n", "<TLS version>") */
+	// Print details of the request
 	printRequestDetails(result)
 
-	//printTimingResultsSimple(result)
+	// Print the timing results
 	printTimingResultsTiered(url, result)
 
 	// Print the response, if there is one
@@ -163,35 +172,51 @@ func parseWsUri(rawURI string) (*url.URL, error) {
 // TODO: add remote address when available from Result
 // TODO: add certificate details
 func printRequestDetails(result wsstat.Result) {
+	if verbosity == 0 {
+		// TODO: print only the most basic info here, maybe target IP, port and nothing else?
+		return
+	}
 	fmt.Println()
-	if result.TLSState != nil {
-		fmt.Println("TLS")
-		fmt.Printf("  Version: %s\n", tls.VersionName(result.TLSState.Version))
-		fmt.Printf("  Cipher Suite: %s\n", tls.CipherSuiteName(result.TLSState.CipherSuite))
+	if verbosity == 1 {
+		fmt.Println("Request information")
+		if result.TLSState != nil {
+			fmt.Printf("  TLS version: %s\n", tls.VersionName(result.TLSState.Version))
+		}
+		for key, values := range result.RequestHeaders {
+			if key == "Origin" {
+				fmt.Printf("  Origin: %s\n", strings.Join(values, ", "))
+			}
+			if key == "Sec-WebSocket-Version" {
+				fmt.Printf("  WebSocket version: %s\n", strings.Join(values, ", "))
+			}
+		}
+		return
 	}
-	fmt.Println("Request headers")
-	for key, values := range result.RequestHeaders {
-		if key == "Origin" {
-			fmt.Printf("  Origin: %s\n", strings.Join(values, ", "))
-			continue
+	if verbosity == 2 {
+		if result.TLSState != nil {
+			fmt.Println("TLS")
+			fmt.Printf("  Version: %s\n", tls.VersionName(result.TLSState.Version))
+			fmt.Printf("  Cipher Suite: %s\n", tls.CipherSuiteName(result.TLSState.CipherSuite))
+
+			// Print the certificate details
+			for i, cert := range result.TLSState.PeerCertificates {
+				fmt.Printf("  Certificate %d\n", i+1)
+				fmt.Printf("    Subject: %s\n", cert.Subject)
+				fmt.Printf("    Issuer: %s\n", cert.Issuer)
+				fmt.Printf("    Not Before: %s\n", cert.NotBefore)
+				fmt.Printf("    Not After: %s\n", cert.NotAfter)
+			}
+			fmt.Println()
 		}
-		if key == "Sec-WebSocket-Version" {
-			fmt.Printf("  WebSocket version: %s\n", strings.Join(values, ", "))
-			continue
-		}
-		if verbose {
+		fmt.Println("Request headers")
+		for key, values := range result.RequestHeaders {
 			fmt.Printf("  %s: %s\n", key, strings.Join(values, ", "))
 		}
-	}
-	fmt.Println("Response headers")
-	for key, values := range result.ResponseHeaders {
-		if key == "Date" {
-			fmt.Printf("  Date: %s\n", strings.Join(values, ", "))
-			continue
-		}
-		if verbose {
+		fmt.Println("Response headers")
+		for key, values := range result.ResponseHeaders {
 			fmt.Printf("  %s: %s\n", key, strings.Join(values, ", "))
 		}
+		return
 	}
 }
 
@@ -210,6 +235,7 @@ func printResponse(response interface{}) {
 	} else if responseBytes, ok := response.([]byte) ; ok {
 		fmt.Printf("Response: %v\n", responseBytes)
 	}
+	fmt.Println()
 }
 
 // printTimingResultsSimple formats and prints the WebSocket statistics to the terminal.
