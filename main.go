@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
@@ -42,6 +43,7 @@ var (
 	textMessage string
 	insecure	bool
 	showVersion bool
+	verbose		bool
 
 	version = "under development"
 )
@@ -51,6 +53,7 @@ func init() {
 	flag.StringVar(&jsonMessage, "json", "", "A JSON RPC message to send to the target server. Response will be printed.")
 	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input.")
 	flag.BoolVar(&showVersion, "v", false, "Print the version.")
+	flag.BoolVar(&verbose, "verbose", false, "Print verbose output, e.g. includes all headers in the output.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] <url>\n", os.Args[0])
@@ -118,11 +121,13 @@ func main() {
 	// TODO: add something like this when Result is updated to hold header information
 	/* fmt.Print("Connected to <WS URL>\n\n")
 	fmt.Printf("Connected via %s\t\n\n", "<TLS version>") */
+	printRequestDetails(result)
 
+	//printTimingResultsSimple(result)
+	printTimingResultsTiered(url, result)
+
+	// Print the response, if there is one
 	printResponse(response)
-
-	//printResultsSimple(result)
-	printResultsTiered(url, result)
 }
 
 // formatPadLeft formats the duration to a string with padding on the left.
@@ -153,7 +158,45 @@ func parseWsUri(rawURI string) (*url.URL, error) {
 	return url, nil
 }
 
-// printResponse prints the response to the terminal.
+// printRequestDetails prints the headers of the WebSocket connection to the terminal.
+// TODO: consider adding some color to make the output more readable
+// TODO: add remote address when available from Result
+// TODO: add certificate details
+func printRequestDetails(result wsstat.Result) {
+	fmt.Println()
+	if result.TLSState != nil {
+		fmt.Println("TLS")
+		fmt.Printf("  Version: %s\n", tls.VersionName(result.TLSState.Version))
+		fmt.Printf("  Cipher Suite: %s\n", tls.CipherSuiteName(result.TLSState.CipherSuite))
+	}
+	fmt.Println("Request headers")
+	for key, values := range result.RequestHeaders {
+		if key == "Origin" {
+			fmt.Printf("  Origin: %s\n", strings.Join(values, ", "))
+			continue
+		}
+		if key == "Sec-WebSocket-Version" {
+			fmt.Printf("  WebSocket version: %s\n", strings.Join(values, ", "))
+			continue
+		}
+		if verbose {
+			fmt.Printf("  %s: %s\n", key, strings.Join(values, ", "))
+		}
+	}
+	fmt.Println("Response headers")
+	for key, values := range result.ResponseHeaders {
+		if key == "Date" {
+			fmt.Printf("  Date: %s\n", strings.Join(values, ", "))
+			continue
+		}
+		if verbose {
+			fmt.Printf("  %s: %s\n", key, strings.Join(values, ", "))
+		}
+	}
+}
+
+// printResponse prints the response to the terminal, if there is a response.
+// TODO: consider adding some color to make the output more readable
 func printResponse(response interface{}) {
 	if response == nil {
 		return
@@ -169,9 +212,9 @@ func printResponse(response interface{}) {
 	}
 }
 
-// printResultsSimple formats and prints the WebSocket statistics to the terminal.
+// printTimingResultsSimple formats and prints the WebSocket statistics to the terminal.
 // TODO: consider adding some color to make the output more readable
-func printResultsSimple(result wsstat.Result) {
+func printTimingResultsSimple(result wsstat.Result) {
 	const padding = 2
 	fmt.Println()
 
@@ -202,9 +245,9 @@ func printResultsSimple(result wsstat.Result) {
 	fmt.Printf("\nTotal time:\t%s\t\n", fmt.Sprintf("%dms", result.TotalTime.Milliseconds()))
 }
 
-// printResultsTiered formats and prints the WebSocket statistics to the terminal in a tiered fashion.
+// printTimingResultsTiered formats and prints the WebSocket statistics to the terminal in a tiered fashion.
 // TODO: consider adding some color to make the output more readable
-func printResultsTiered(url *url.URL ,result wsstat.Result) {
+func printTimingResultsTiered(url *url.URL ,result wsstat.Result) {
 	fmt.Println()
 	switch url.Scheme {
 	case "wss":
