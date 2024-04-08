@@ -44,11 +44,8 @@ var (
 	insecure     bool
 	showVersion  bool
 	verbose      bool
-	extraVerbose bool
 
 	version = "under development"
-
-	verbosity = 0
 )
 
 func init() {
@@ -57,7 +54,6 @@ func init() {
 	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input.")
 	flag.BoolVar(&showVersion, "version", false, "Print the version.")
 	flag.BoolVar(&verbose, "v", false, "Print verbose output, e.g. includes the most important headers.")
-	flag.BoolVar(&extraVerbose, "vv", false, "Print extra verbose output, e.g. includes all headers and certificates.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] <url>\n", os.Args[0])
@@ -89,13 +85,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error parsing input URI: %v", err)
 		return
-	}
-
-	// Parse the verbosity level
-	if extraVerbose {
-		verbosity = 2
-	} else if verbose {
-		verbosity = 1
 	}
 
 	var result wsstat.Result
@@ -169,30 +158,19 @@ func parseWsUri(rawURI string) (*url.URL, error) {
 
 // printRequestDetails prints the headers of the WebSocket connection to the terminal.
 // TODO: consider adding some color to make the output more readable
-// TODO: add remote address when available from Result
 // TODO: add certificate details
 func printRequestDetails(result wsstat.Result) {
-	if verbosity == 0 {
-		// TODO: print only the most basic info here, maybe target IP, port and nothing else?
+	/* if basic == 0 {
+		// TODO: print only the most basic info here, maybe target IP:port, total time, response and nothing else?
 		return
-	}
+	} */
 	fmt.Println()
-	if verbosity == 1 {
-		fmt.Println("Request information")
-		if result.TLSState != nil {
-			fmt.Printf("  TLS version: %s\n", tls.VersionName(result.TLSState.Version))
+	if verbose {
+		fmt.Println("IP")
+		for i, ip := range result.IPs {
+			fmt.Printf("  IP %d: %s\n", i+1, ip)
 		}
-		for key, values := range result.RequestHeaders {
-			if key == "Origin" {
-				fmt.Printf("  Origin: %s\n", strings.Join(values, ", "))
-			}
-			if key == "Sec-WebSocket-Version" {
-				fmt.Printf("  WebSocket version: %s\n", strings.Join(values, ", "))
-			}
-		}
-		return
-	}
-	if verbosity == 2 {
+		fmt.Println()
 		if result.TLSState != nil {
 			fmt.Println("TLS")
 			fmt.Printf("  Version: %s\n", tls.VersionName(result.TLSState.Version))
@@ -215,6 +193,19 @@ func printRequestDetails(result wsstat.Result) {
 		fmt.Println("Response headers")
 		for key, values := range result.ResponseHeaders {
 			fmt.Printf("  %s: %s\n", key, strings.Join(values, ", "))
+		}
+		return
+	} else {
+		for _, values := range result.IPs {
+			fmt.Printf("  IP: %v\n", values)
+		}
+		for key, values := range result.RequestHeaders {
+			if key == "Sec-WebSocket-Version" {
+				fmt.Printf("  WebSocket version: %s\n", strings.Join(values, ", "))
+			}
+		}
+		if result.TLSState != nil {
+			fmt.Printf("  TLS version: %s\n", tls.VersionName(result.TLSState.Version))
 		}
 		return
 	}
