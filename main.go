@@ -43,6 +43,7 @@ var (
 	textMessage  string
 	insecure     bool
 	showVersion  bool
+	basic        bool
 	verbose      bool
 
 	version = "under development"
@@ -53,6 +54,7 @@ func init() {
 	flag.StringVar(&jsonMessage, "json", "", "A JSON RPC message to send to the target server. Response will be printed.")
 	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input.")
 	flag.BoolVar(&showVersion, "version", false, "Print the version.")
+	flag.BoolVar(&basic, "b", false, "Print only basic output.")
 	flag.BoolVar(&verbose, "v", false, "Print verbose output, e.g. includes the most important headers.")
 
 	flag.Usage = func() {
@@ -67,6 +69,12 @@ func main() {
 	if showVersion {
 		fmt.Printf("Version: %s\n", version)
 		os.Exit(0)
+	}
+
+	if basic && verbose {
+		fmt.Print("The basic and verbose flags are mutually exclusive, choose one.\n\n")
+		flag.Usage()
+		os.Exit(2)
 	}
 
 	args := flag.Args()
@@ -122,7 +130,7 @@ func main() {
 	printRequestDetails(result)
 
 	// Print the timing results
-	printTimingResultsTiered(url, result)
+	printTimingResults(url, result)
 
 	// Print the response, if there is one
 	printResponse(response)
@@ -158,15 +166,22 @@ func parseWsUri(rawURI string) (*url.URL, error) {
 
 // printRequestDetails prints the headers of the WebSocket connection to the terminal.
 // TODO: consider adding some color to make the output more readable
-// TODO: add certificate details
 func printRequestDetails(result wsstat.Result) {
-	/* if basic == 0 {
-		// TODO: print only the most basic info here, maybe target IP:port, total time, response and nothing else?
-		return
-	} */
 	fmt.Println()
+
+	// Print basic output
+	if basic {
+		fmt.Printf("URL: %s\n", result.URL.Hostname())
+		if len(result.IPs) > 0 {
+			fmt.Printf("IP:  %s\n", result.IPs[0])
+		}
+		return
+	}
+
+	// Print verbose output
 	if verbose {
-		fmt.Println("IP")
+		fmt.Println("Target")
+		fmt.Printf("  URL:  %s\n", result.URL.Hostname())
 		for i, ip := range result.IPs {
 			fmt.Printf("  IP %d: %s\n", i+1, ip)
 		}
@@ -195,19 +210,20 @@ func printRequestDetails(result wsstat.Result) {
 			fmt.Printf("  %s: %s\n", key, strings.Join(values, ", "))
 		}
 		return
-	} else {
-		for _, values := range result.IPs {
-			fmt.Printf("  IP: %v\n", values)
+	}
+
+	// Print standard output
+	fmt.Printf("Target: %s\n", result.URL.Hostname())
+	for _, values := range result.IPs {
+		fmt.Printf("IP: %v\n", values)
+	}
+	for key, values := range result.RequestHeaders {
+		if key == "Sec-WebSocket-Version" {
+			fmt.Printf("WS version: %s\n", strings.Join(values, ", "))
 		}
-		for key, values := range result.RequestHeaders {
-			if key == "Sec-WebSocket-Version" {
-				fmt.Printf("  WebSocket version: %s\n", strings.Join(values, ", "))
-			}
-		}
-		if result.TLSState != nil {
-			fmt.Printf("  TLS version: %s\n", tls.VersionName(result.TLSState.Version))
-		}
-		return
+	}
+	if result.TLSState != nil {
+		fmt.Printf("TLS version: %s\n", tls.VersionName(result.TLSState.Version))
 	}
 }
 
@@ -226,6 +242,22 @@ func printResponse(response interface{}) {
 	} else if responseBytes, ok := response.([]byte) ; ok {
 		fmt.Printf("Response: %v\n", responseBytes)
 	}
+	fmt.Println()
+}
+
+// printTimingResults prints the WebSocket statistics to the terminal.
+func printTimingResults(url *url.URL, result wsstat.Result) {
+	if basic {
+		printTimingResultsBasic(result)
+	} else {
+		printTimingResultsTiered(url, result)
+	}
+}
+
+// printTimingResultsBasic formats and prints only the most basic WebSocket statistics.
+func printTimingResultsBasic(result wsstat.Result) {
+	fmt.Println()
+	fmt.Printf("Total time: %dms\n", result.TotalTime.Milliseconds())
 	fmt.Println()
 }
 
@@ -264,7 +296,7 @@ func printTimingResultsSimple(result wsstat.Result) {
 
 // printTimingResultsTiered formats and prints the WebSocket statistics to the terminal in a tiered fashion.
 // TODO: consider adding some color to make the output more readable
-func printTimingResultsTiered(url *url.URL ,result wsstat.Result) {
+func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 	fmt.Println()
 	switch url.Scheme {
 	case "wss":
