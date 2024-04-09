@@ -14,11 +14,13 @@ There are a number of ways to install this tool, depending on your preference. A
 
 ### Go installation
 
-Requires that you have Go installed on your system. Recommended Go version is 1.21 or later.
+Requires that you have Go installed on your system and that you have `$GOPATH/bin` in your `PATH`. Recommended Go version is 1.21 or later.
 
 Install via Go:
 
     go install github.com/jakobilobi/wsstat@latest
+
+Note: installing the package this way will always install the latest version instead of a specific releas. Also, the `-version` flag won't work since the build step which includes it is not run for this install method.
 
 ### Binary download
 
