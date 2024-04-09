@@ -10,13 +10,41 @@ It is basically trying to do what [reorx/httpstat](https://github.com/reorx/http
 
 ## Installation
 
-Recommended Go version is 1.21 or later.
+There are a number of ways to install this tool, depending on your preference. All of them have the same result in common: you will be able to run `wsstat` from your terminal.
+
+### Go installation
+
+Requires that you have Go installed on your system. Recommended Go version is 1.21 or later.
 
 Install via Go:
 
     go install github.com/jakobilobi/wsstat@latest
 
-TODO: add binary download install option
+### Binary download
+
+#### Linux & macOS
+
+Download the binary appropriate for your system from the latest release on [the release page](https://github.com/jakobilobi/wsstat/releases).
+
+Make the binary executable:
+
+```sh
+chmod +x wsstat-<OS>-<ARCH>
+```
+
+Move the binary to a directory in your `PATH`:
+
+```sh
+sudo mv wsstat-<OS>-<ARCH> /usr/local/bin/wsstat  # system-wide
+mv wsstat-<OS>-<ARCH> ~/bin/wsstat  # user-specific, ensure ~/bin is in your PATH
+```
+
+#### Windows
+
+1. Download the `wsstat-windows-<ARCH>.exe` binary from the latest release on [the release page](https://github.com/jakobilobi/wsstat/releases).
+2. Place the binary in a directory of your choice and add the directory to your `PATH` environment variable.
+3. Rename the binary to `wsstat.exe` for convenience.
+4. You can now run `wsstat` from the command prompt or PowerShell.
 
 ## Usage
 
