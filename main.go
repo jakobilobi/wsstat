@@ -46,7 +46,7 @@ var (
 	basic        bool
 	verbose      bool
 
-	version = "under development"
+	version = "unknown"
 )
 
 func init() {
