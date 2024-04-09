@@ -18,9 +18,19 @@ Requires that you have Go installed on your system and that you have `$GOPATH/bi
 
 Install via Go:
 
-    go install -ldflags "-X main.version=$(cat VERSION)" github.com/jakobilobi/wsstat@latest
+```sh
+# To install the latest version, specify other releases with @<tag>
+go install github.com/jakobilobi/wsstat@latest
 
-Note: installing the package this way will always install the latest version instead of a specific release.
+# To include the version in the binary, run the install from the root of the repo
+git clone github.com/jakobilobi/wsstat
+cd wsstat
+git fetch --all
+git checkout origin/main
+go install -ldflags "-X main.version=$(cat VERSION)" github.com/jakobilobi/wsstat@latest
+```
+
+Note: installing the package with `@latest`  will always install the latest version no matter the other parameters of the command.
 
 ### Binary download
 
