@@ -5,14 +5,14 @@ VERSION := $(shell cat VERSION)
 LDFLAGS=-ldflags "-X main.version=${VERSION}"
 
 build:
-	go build ${LDFLAGS} -o bin/${CMD} main.go
+	go build ${LDFLAGS} -o bin/${CMD} $(PACKAGE_NAME)
 
 build-all: $(OS_ARCH_PAIRS)
 
 $(OS_ARCH_PAIRS):
 	GOOS=$(firstword $(subst /, ,$@)) \
 	GOARCH=$(lastword $(subst /, ,$@)) \
-	go build ${LDFLAGS} -o 'bin/$(CMD)-$(firstword $(subst /, ,$@))-$(lastword $(subst /, ,$@))' main.go
+	go build ${LDFLAGS} -o 'bin/$(CMD)-$(firstword $(subst /, ,$@))-$(lastword $(subst /, ,$@))' $(PACKAGE_NAME)
 
 explain:
 	@echo "Usage: make [target]"
