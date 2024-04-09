@@ -14,7 +14,7 @@ Recommended Go version is 1.21 or later.
 
 Install via Go:
 
-    go install github.com/rogercoll/wsstat@latest
+    go install github.com/jakobilobi/wsstat@latest
 
 TODO: add binary download install option
 
