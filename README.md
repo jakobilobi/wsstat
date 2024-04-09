@@ -63,13 +63,13 @@ mv wsstat-<OS>-<ARCH> ~/bin/wsstat  # user-specific, ensure ~/bin is in your PAT
 Basic usage:
 
 ```sh
-wsstat wss://example.org
+wsstat example.org
 ```
 
 With verbose output:
 
 ```sh
-wsstat -v wss://example.org
+wsstat -v ws://example.local
 ```
 
 For more options:
