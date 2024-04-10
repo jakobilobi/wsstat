@@ -36,7 +36,11 @@ Note: installing the package with `@latest`  will always install the latest vers
 
 #### Linux & macOS
 
-Download the binary appropriate for your system from the latest release on [the release page](https://github.com/jakobilobi/wsstat/releases).
+Download the binary appropriate for your system from the latest release on [the release page](https://github.com/jakobilobi/wsstat/releases):
+
+```sh
+wget https://github.com/jakobilobi/wsstat/releases/download/<tag>/wsstat-<OS>-<ARCH>
+```
 
 Make the binary executable:
 
