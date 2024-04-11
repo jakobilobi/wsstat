@@ -63,7 +63,7 @@ func init() {
 
 	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input.")
 
-	flag.BoolVar(&responseOnly, "ro", false, "Print only the response.")
+	flag.BoolVar(&responseOnly, "ro", false, "Response only: print only the response. Has no effect if there's no expected response.")
 	flag.BoolVar(&showVersion, "version", false, "Print the version.")
 
 	flag.BoolVar(&basic, "b", false, "Print only basic output.")
@@ -248,10 +248,11 @@ func printResponse(response interface{}) {
 	if response == nil {
 		return
 	}
-	fmt.Println()
 	baseMessage := "Response: "
 	if responseOnly {
 		baseMessage = ""
+	} else {
+		fmt.Println()
 	}
 	if responseMap, ok := response.(map[string]interface{}) ; ok {
 		// If JSON in request, print response as JSON
@@ -270,7 +271,9 @@ func printResponse(response interface{}) {
 	} else if responseBytes, ok := response.([]byte) ; ok {
 		fmt.Printf("%s%v\n", baseMessage, responseBytes)
 	}
-	fmt.Println()
+	if !responseOnly {
+		fmt.Println()
+	}
 }
 
 // printTimingResults prints the WebSocket statistics to the terminal.
