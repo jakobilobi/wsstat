@@ -138,7 +138,8 @@ func main() {
 		}
 	}
 
-	if !responseOnly {
+	// Print the results if there is no expected response or if the responseOnly flag is not set
+	if !responseOnly || (jsonMessage == "" && textMessage == "") {
 		// Print details of the request
 		printRequestDetails(result)
 
