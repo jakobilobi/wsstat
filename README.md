@@ -4,7 +4,7 @@
 
 The aim of this project is to provide a simple and easy to use tool to check the status of a WebSocket endpoint.
 
-It is basically trying to do what [reorx/httpstat](https://github.com/reorx/httpstat) and [davecheney/httpstat](https://github.com/davecheney/httpstat) does for HTTP requests, but for WebSocket connections, and quite clearly draws a lot of inspiration from those two.
+What I've done is to basically try to replicate what [reorx/httpstat](https://github.com/reorx/httpstat) and [davecheney/httpstat](https://github.com/davecheney/httpstat) does for HTTP requests, but instead do it for WebSocket connections, and it should be quite clear that this project draws a lot of inspiration from those two.
 
 > Imitation is the sincerest form of flattery.
 
