@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -38,11 +39,18 @@ const (
 )
 
 var (
-	// CLI flags
+	// Input flags
 	jsonMessage  string
 	textMessage  string
+
+	// Protocol flags
 	insecure     bool
+	
+	// Output flags
+	responseOnly bool
 	showVersion  bool
+
+	// Verbosity flags
 	basic        bool
 	verbose      bool
 
@@ -52,8 +60,12 @@ var (
 func init() {
 	flag.StringVar(&textMessage, "text", "", "A text message to send to the target server. Response will be printed.")
 	flag.StringVar(&jsonMessage, "json", "", "A JSON RPC message to send to the target server. Response will be printed.")
+
 	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input.")
+
+	flag.BoolVar(&responseOnly, "ro", false, "Print only the response.")
 	flag.BoolVar(&showVersion, "version", false, "Print the version.")
+
 	flag.BoolVar(&basic, "b", false, "Print only basic output.")
 	flag.BoolVar(&verbose, "v", false, "Print verbose output, e.g. includes the most important headers.")
 
@@ -126,11 +138,13 @@ func main() {
 		}
 	}
 
-	// Print details of the request
-	printRequestDetails(result)
+	if !responseOnly {
+		// Print details of the request
+		printRequestDetails(result)
 
-	// Print the timing results
-	printTimingResults(url, result)
+		// Print the timing results
+		printTimingResults(url, result)
+	}
 
 	// Print the response, if there is one
 	printResponse(response)
@@ -234,13 +248,26 @@ func printResponse(response interface{}) {
 		return
 	}
 	fmt.Println()
+	baseMessage := "Response: "
+	if responseOnly {
+		baseMessage = ""
+	}
 	if responseMap, ok := response.(map[string]interface{}) ; ok {
-		// TODO: print the response in a more readable format
-		fmt.Printf("Response: %v\n", responseMap)
+		// If JSON in request, print response as JSON
+		if jsonMessage != "" {
+			responseJSON, err := json.Marshal(responseMap)
+			if err != nil {
+				fmt.Printf("Could not marshal response to JSON. Response: %v, error: %v", responseMap, err)
+				return
+			}
+			fmt.Printf("%s%s\n", baseMessage, responseJSON)
+		} else {
+			fmt.Printf("%s%v\n", baseMessage, responseMap)
+		}
 	} else if responseArray, ok := response.([]interface{}) ; ok {
-		fmt.Printf("Response: %v\n", responseArray)
+		fmt.Printf("%s%v\n", baseMessage, responseArray)
 	} else if responseBytes, ok := response.([]byte) ; ok {
-		fmt.Printf("Response: %v\n", responseBytes)
+		fmt.Printf("%s%v\n", baseMessage, responseBytes)
 	}
 	fmt.Println()
 }
