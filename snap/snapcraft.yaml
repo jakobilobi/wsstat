@@ -1,0 +1,34 @@
+name: wsstat
+adopt-info: wsstat
+license: MIT
+summary: wsstat is a websocket traffic monitoring tool.
+description: |
+  wsstat provides a simple and easy to use tool to check the status and connection stats of a WebSocket endpoint.
+
+  Usage: wsstat wss://foo.example.com
+
+grade: stable
+confinement: strict
+base: core22
+
+apps:
+  wsstat:
+    command: bin/wsstat
+    plugs: [network, home]
+
+parts:
+  wsstat:
+    plugin: nil
+    build-snaps: 
+      - go
+    source: https://github.com/jakobilobi/wsstat.git
+    override-pull: |
+      craftctl default
+      craftctl set version="$(git describe --tags --abbrev=10)-$(git rev-parse --short HEAD)"
+    override-build: |
+      craftctl default
+      make build
+      mkdir -p $SNAPCRAFT_PART_INSTALL/bin/
+      cp ./bin/wsstat $SNAPCRAFT_PART_INSTALL/bin/wsstat
+    prime:
+      - bin/wsstat
