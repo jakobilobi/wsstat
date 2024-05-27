@@ -28,7 +28,7 @@ parts:
       craftctl set version="$(git describe --tags --abbrev=7)-$(git rev-parse --short HEAD)"
     override-build: |
       craftctl default
-      make build
+      make build-snapcraft
       mkdir -p $SNAPCRAFT_PART_INSTALL/bin/
       cp ./bin/wsstat $SNAPCRAFT_PART_INSTALL/bin/wsstat
     prime:
