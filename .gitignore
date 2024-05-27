@@ -22,3 +22,6 @@ go.work
 
 # Binary directory
 bin/
+
+# Snap packages
+*.snap
