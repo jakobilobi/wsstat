@@ -71,7 +71,7 @@ func init() {
 	flag.BoolVar(&verbose, "v", false, "Print verbose output, e.g. includes the most important headers.")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [options] <url>\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage:  wsstat [options] <url>\n\n")
 		fmt.Fprintln(os.Stderr, "Options:")
 		flag.PrintDefaults()
 	}
