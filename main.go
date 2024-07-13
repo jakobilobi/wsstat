@@ -42,6 +42,7 @@ var (
 	// Input flags
 	jsonMessage  string
 	textMessage  string
+	inputHeaders string
 
 	// Protocol flags
 	insecure     bool
@@ -60,9 +61,9 @@ var (
 func init() {
 	flag.StringVar(&textMessage, "text", "", "A text message to send to the target server. Response will be printed.")
 	flag.StringVar(&jsonMessage, "json", "", "A JSON RPC message to send to the target server. Response will be printed.")
+	flag.StringVar(&inputHeaders, "headers", "", "A comma-separated list of headers to send to the target server in the connection establishing request.")
 
 	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input URL.")
-
 	flag.BoolVar(&responseOnly, "ro", false, "Response only; print only the response. Has no effect if there's no expected response.")
 	flag.BoolVar(&showVersion, "version", false, "Print the version.")
 
@@ -108,10 +109,11 @@ func main() {
 		return
 	}
 
+	header := parseHeaders(inputHeaders)
 	var result wsstat.Result
 	var response interface{}
 	if textMessage != "" {
-		result, response, err = wsstat.MeasureLatency(url, textMessage, http.Header{}) // TODO: make headers configurable
+		result, response, err = wsstat.MeasureLatency(url, textMessage, header)
 		if err != nil {
 			log.Fatalf("Error establishing WS connection: %v", err)
 			return
@@ -126,13 +128,13 @@ func main() {
 			Id: "1",
 			RpcVersion: "2.0",
 		}
-		result, response, err = wsstat.MeasureLatencyJSON(url, msg, http.Header{}) // TODO: make headers configurable
+		result, response, err = wsstat.MeasureLatencyJSON(url, msg, header)
 		if err != nil {
 			log.Fatalf("Error establishing WS connection: %v", err)
 			return
 		}
 	} else {
-		result, err = wsstat.MeasureLatencyPing(url, http.Header{}) // TODO: make headers configurable
+		result, err = wsstat.MeasureLatencyPing(url, header)
 		if err != nil {
 			log.Fatalf("Error establishing WS connection: %v", err)
 			return
@@ -172,6 +174,23 @@ func formatPadLeft(d time.Duration) string {
 // formatPadRight formats the duration to a string with padding on the right.
 func formatPadRight(d time.Duration) string {
 	return fmt.Sprintf("%-8s", strconv.Itoa(int(d/time.Millisecond))+"ms")
+}
+
+// parseHeaders parses the inputHeaders string into an HTTP header.
+func parseHeaders(inputHeaders string) http.Header {
+	header := http.Header{}
+	if inputHeaders != "" {
+		headerParts := strings.Split(inputHeaders, ",")
+		for _, part := range headerParts {
+			parts := strings.Split(part, ":")
+			if len(parts) != 2 {
+				log.Fatalf("Invalid header format: %s", part)
+				return http.Header{}
+			}
+			header.Add(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+		}
+	}
+	return header
 }
 
 // parseWsUri parses the rawURI string into a URL object.
