@@ -112,7 +112,7 @@ func main() {
 	if textMessage != "" {
 		result, response, err = wsstat.MeasureLatency(url, textMessage, http.Header{}) // TODO: make headers configurable
 		if err != nil {
-			log.Fatalf("Error measuring latency: %v", err)
+			log.Fatalf("Error establishing WS connection: %v", err)
 			return
 		}
 	} else if jsonMessage != "" {
@@ -127,13 +127,13 @@ func main() {
 		}
 		result, response, err = wsstat.MeasureLatencyJSON(url, msg, http.Header{}) // TODO: make headers configurable
 		if err != nil {
-			log.Fatalf("Error measuring latency: %v", err)
+			log.Fatalf("Error establishing WS connection: %v", err)
 			return
 		}
 	} else {
 		result, err = wsstat.MeasureLatencyPing(url, http.Header{}) // TODO: make headers configurable
 		if err != nil {
-			log.Fatalf("Error measuring latency: %v", err)
+			log.Fatalf("Error establishing WS connection: %v", err)
 			return
 		}
 	}
