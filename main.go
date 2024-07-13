@@ -61,16 +61,17 @@ func init() {
 	flag.StringVar(&textMessage, "text", "", "A text message to send to the target server. Response will be printed.")
 	flag.StringVar(&jsonMessage, "json", "", "A JSON RPC message to send to the target server. Response will be printed.")
 
-	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input.")
+	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input URL.")
 
-	flag.BoolVar(&responseOnly, "ro", false, "Response only: print only the response. Has no effect if there's no expected response.")
+	flag.BoolVar(&responseOnly, "ro", false, "Response only; print only the response. Has no effect if there's no expected response.")
 	flag.BoolVar(&showVersion, "version", false, "Print the version.")
 
 	flag.BoolVar(&basic, "b", false, "Print only basic output.")
 	flag.BoolVar(&verbose, "v", false, "Print verbose output, e.g. includes the most important headers.")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [options] <url>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s [options] <url>\n\n", os.Args[0])
+		fmt.Fprintln(os.Stderr, "Options:")
 		flag.PrintDefaults()
 	}
 }
