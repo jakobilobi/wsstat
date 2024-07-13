@@ -161,6 +161,12 @@ func colorWSOrange(text string) string {
 	return customColor(255, 102, 0, text)
 }
 
+// colorTeaGreen returns the text with a custom tea green color.
+// The color has hex code #d3f9b5.
+func colorTeaGreen(text string) string {
+	return customColor(211, 249, 181, text)
+}
+
 // customColor returns the text with a custom RGB color.
 func customColor(r, g, b int, text string) string {
 	return fmt.Sprintf("\033[38;2;%d;%d;%dm%s\033[0m", r, g, b, text)
@@ -227,19 +233,20 @@ func printRequestDetails(result wsstat.Result) {
 	// Print verbose output
 	if verbose {
 		fmt.Println(colorWSOrange("Target"))
-		fmt.Printf("  URL:  %s\n", result.URL.Hostname())
-		for i, ip := range result.IPs {
-			fmt.Printf("  IP %d: %s\n", i+1, ip)
+		fmt.Printf("  %s:  %s\n", colorTeaGreen("URL"), result.URL.Hostname())
+		// Loop in case there are multiple IPs with the target
+		for _, ip := range result.IPs {
+			fmt.Printf("  %s: %s\n", colorTeaGreen("IP"), ip)
 		}
 		fmt.Println()
 		if result.TLSState != nil {
 			fmt.Println(colorWSOrange("TLS"))
-			fmt.Printf("  Version: %s\n", tls.VersionName(result.TLSState.Version))
-			fmt.Printf("  Cipher Suite: %s\n", tls.CipherSuiteName(result.TLSState.CipherSuite))
+			fmt.Printf("  %s: %s\n", colorTeaGreen("Version"), tls.VersionName(result.TLSState.Version))
+			fmt.Printf("  %s: %s\n", colorTeaGreen("Cipher Suite"), tls.CipherSuiteName(result.TLSState.CipherSuite))
 
 			// Print the certificate details
 			for i, cert := range result.TLSState.PeerCertificates {
-				fmt.Printf("  Certificate %d\n", i+1)
+				fmt.Printf("  %s: %s\n", colorTeaGreen("Certificate"), i+1)
 				fmt.Printf("    Subject: %s\n", cert.Subject)
 				fmt.Printf("    Issuer: %s\n", cert.Issuer)
 				fmt.Printf("    Not Before: %s\n", cert.NotBefore)
@@ -249,11 +256,11 @@ func printRequestDetails(result wsstat.Result) {
 		}
 		fmt.Println(colorWSOrange("Request headers"))
 		for key, values := range result.RequestHeaders {
-			fmt.Printf("  %s: %s\n", key, strings.Join(values, ", "))
+			fmt.Printf("  %s: %s\n", colorTeaGreen(key), strings.Join(values, ", "))
 		}
 		fmt.Println(colorWSOrange("Response headers"))
 		for key, values := range result.ResponseHeaders {
-			fmt.Printf("  %s: %s\n", key, strings.Join(values, ", "))
+			fmt.Printf("  %s: %s\n", colorTeaGreen(key), strings.Join(values, ", "))
 		}
 		return
 	}
