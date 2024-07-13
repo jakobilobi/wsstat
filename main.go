@@ -223,9 +223,9 @@ func printRequestDetails(result wsstat.Result) {
 
 	// Print basic output
 	if basic {
-		fmt.Printf("URL: %s\n", result.URL.Hostname())
+		fmt.Printf("%s: %s\n", colorTeaGreen("URL"), result.URL.Hostname())
 		if len(result.IPs) > 0 {
-			fmt.Printf("IP:  %s\n", result.IPs[0])
+			fmt.Printf("%s:  %s\n", colorTeaGreen("IP"), result.IPs[0])
 		}
 		return
 	}
@@ -325,7 +325,7 @@ func printTimingResults(url *url.URL, result wsstat.Result) {
 // printTimingResultsBasic formats and prints only the most basic WebSocket statistics.
 func printTimingResultsBasic(result wsstat.Result) {
 	fmt.Println()
-	fmt.Printf("Total time: %dms\n", result.TotalTime.Milliseconds())
+	fmt.Printf("%s: %dms\n", colorWSOrange("Total time"), result.TotalTime.Milliseconds())
 	fmt.Println()
 }
 
