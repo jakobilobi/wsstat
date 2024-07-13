@@ -366,31 +366,31 @@ func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 	switch url.Scheme {
 	case "wss":
 		fmt.Fprintf(os.Stdout, wssPrintTemplate,
-			formatPadLeft(result.DNSLookup),
-			formatPadLeft(result.TCPConnection),
-			formatPadLeft(result.TLSHandshake),
-			formatPadLeft(result.WSHandshake),
-			formatPadLeft(result.MessageRoundTrip),
+			colorTeaGreen(formatPadLeft(result.DNSLookup)),
+			colorTeaGreen(formatPadLeft(result.TCPConnection)),
+			colorTeaGreen(formatPadLeft(result.TLSHandshake)),
+			colorTeaGreen(formatPadLeft(result.WSHandshake)),
+			colorTeaGreen(formatPadLeft(result.MessageRoundTrip)),
 			//formatPadLeft(result.ConnectionClose), // Skipping this for now
-			formatPadRight(result.DNSLookupDone),
-			formatPadRight(result.TCPConnected),
-			formatPadRight(result.TLSHandshakeDone),
-			formatPadRight(result.WSHandshakeDone),
+			colorTeaGreen(formatPadRight(result.DNSLookupDone)),
+			colorTeaGreen(formatPadRight(result.TCPConnected)),
+			colorTeaGreen(formatPadRight(result.TLSHandshakeDone)),
+			colorTeaGreen(formatPadRight(result.WSHandshakeDone)),
 			//formatPadRight(result.FirstMessageResponse), // Skipping due to ConnectionClose skip
-			formatPadRight(result.TotalTime),
+			colorWSOrange(formatPadRight(result.TotalTime)),
 		)
 	case "ws":
 		fmt.Fprintf(os.Stdout, wsPrintTemplate,
-			formatPadLeft(result.DNSLookup),
-			formatPadLeft(result.TCPConnection),
-			formatPadLeft(result.WSHandshake),
-			formatPadLeft(result.MessageRoundTrip),
+			colorTeaGreen(formatPadLeft(result.DNSLookup)),
+			colorTeaGreen(formatPadLeft(result.TCPConnection)),
+			colorTeaGreen(formatPadLeft(result.WSHandshake)),
+			colorTeaGreen(formatPadLeft(result.MessageRoundTrip)),
 			//formatPadLeft(result.ConnectionClose), // Skipping this for now
-			formatPadRight(result.DNSLookupDone),
-			formatPadRight(result.TCPConnected),
-			formatPadRight(result.WSHandshakeDone),
+			colorTeaGreen(formatPadRight(result.DNSLookupDone)),
+			colorTeaGreen(formatPadRight(result.TCPConnected)),
+			colorTeaGreen(formatPadRight(result.WSHandshakeDone)),
 			//formatPadRight(result.FirstMessageResponse), // Skipping due to ConnectionClose skip
-			formatPadRight(result.TotalTime),
+			colorWSOrange(formatPadRight(result.TotalTime)),
 		)
 	}
 }
