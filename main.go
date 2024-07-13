@@ -103,7 +103,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	url, err := parseWsUri(args[0])
+	url, err := parseWSURI(args[0])
 	if err != nil {
 		log.Fatalf("Error parsing input URI: %v", err)
 		return
@@ -121,12 +121,12 @@ func main() {
 	} else if jsonMessage != "" {
 		msg := struct {
 			Method string `json:"method"`
-			Id string `json:"id"`
-			RpcVersion string `json:"jsonrpc"`
+			ID string `json:"id"`
+			RPCVersion string `json:"jsonrpc"`
 		}{
 			Method: jsonMessage,
-			Id: "1",
-			RpcVersion: "2.0",
+			ID: "1",
+			RPCVersion: "2.0",
 		}
 		result, response, err = wsstat.MeasureLatencyJSON(url, msg, header)
 		if err != nil {
@@ -193,8 +193,8 @@ func parseHeaders(inputHeaders string) http.Header {
 	return header
 }
 
-// parseWsUri parses the rawURI string into a URL object.
-func parseWsUri(rawURI string) (*url.URL, error) {
+// parseWSURI parses the rawURI string into a URL object.
+func parseWSURI(rawURI string) (*url.URL, error) {
 	if !strings.Contains(rawURI, "://") {
 		scheme := "wss://"
 		if insecure {
