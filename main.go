@@ -181,6 +181,7 @@ func parseWsUri(rawURI string) (*url.URL, error) {
 
 // printRequestDetails prints the headers of the WebSocket connection to the terminal.
 // TODO: consider adding some color to make the output more readable
+// WS logo color: #ff6600
 func printRequestDetails(result wsstat.Result) {
 	fmt.Println()
 
