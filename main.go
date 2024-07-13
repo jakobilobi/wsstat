@@ -246,7 +246,7 @@ func printRequestDetails(result wsstat.Result) {
 
 			// Print the certificate details
 			for i, cert := range result.TLSState.PeerCertificates {
-				fmt.Printf("  %s: %s\n", colorTeaGreen("Certificate"), i+1)
+				fmt.Printf("  %s: %d\n", colorTeaGreen("Certificate"), i+1)
 				fmt.Printf("    Subject: %s\n", cert.Subject)
 				fmt.Printf("    Issuer: %s\n", cert.Issuer)
 				fmt.Printf("    Not Before: %s\n", cert.NotBefore)
