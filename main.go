@@ -156,7 +156,6 @@ func main() {
 
 // colorWSOrange returns the text with a custom orange color.
 // The color is from the WS logo, #ff6600 is its hex code.
-// TODO: consider adding a counter color, perhaps tea green #d3f9b5
 func colorWSOrange(text string) string {
 	return customColor(255, 102, 0, text)
 }
