@@ -114,7 +114,7 @@ func main() {
 	if textMessage != "" {
 		result, response, err = wsstat.MeasureLatency(url, textMessage, header)
 		if err != nil {
-			log.Fatalf("Error establishing WS connection to '%s': %v", url, err)
+			handleConnectionError(err, url.String())
 		}
 	} else if jsonMessage != "" {
 		msg := struct {
@@ -128,12 +128,12 @@ func main() {
 		}
 		result, response, err = wsstat.MeasureLatencyJSON(url, msg, header)
 		if err != nil {
-			log.Fatalf("Error establishing WS connection to '%s': %v", url, err)
+			handleConnectionError(err, url.String())
 		}
 	} else {
 		result, err = wsstat.MeasureLatencyPing(url, header)
 		if err != nil {
-			log.Fatalf("Error establishing WS connection to '%s': %v", url, err)
+			handleConnectionError(err, url.String())
 		}
 	}
 
@@ -175,6 +175,14 @@ func formatPadLeft(d time.Duration) string {
 // formatPadRight formats the duration to a string with padding on the right.
 func formatPadRight(d time.Duration) string {
 	return fmt.Sprintf("%-8s", strconv.Itoa(int(d/time.Millisecond))+"ms")
+}
+
+// handleConnectionError prints the error message and exits the program.
+func handleConnectionError(err error, url string) {
+	if strings.Contains(err.Error(), "tls: first record does not look like a TLS handshake") {
+		log.Fatalf("Error establishing WS connection to '%s': %v\n\nIs the target server using a secure WS connection? If not, use the '-insecure' flag or specify the correct scheme in the input.", url, err)
+	}
+	log.Fatalf("Error establishing WS connection to '%s': %v", url, err)
 }
 
 // parseHeaders parses the inputHeaders string into an HTTP header.
