@@ -106,7 +106,6 @@ func main() {
 	url, err := parseWSURI(args[0])
 	if err != nil {
 		log.Fatalf("Error parsing input URI: %v", err)
-		return
 	}
 
 	header := parseHeaders(inputHeaders)
@@ -115,8 +114,7 @@ func main() {
 	if textMessage != "" {
 		result, response, err = wsstat.MeasureLatency(url, textMessage, header)
 		if err != nil {
-			log.Fatalf("Error establishing WS connection: %v", err)
-			return
+			log.Fatalf("Error establishing WS connection to '%s': %v", url, err)
 		}
 	} else if jsonMessage != "" {
 		msg := struct {
@@ -130,14 +128,12 @@ func main() {
 		}
 		result, response, err = wsstat.MeasureLatencyJSON(url, msg, header)
 		if err != nil {
-			log.Fatalf("Error establishing WS connection: %v", err)
-			return
+			log.Fatalf("Error establishing WS connection to '%s': %v", url, err)
 		}
 	} else {
 		result, err = wsstat.MeasureLatencyPing(url, header)
 		if err != nil {
-			log.Fatalf("Error establishing WS connection: %v", err)
-			return
+			log.Fatalf("Error establishing WS connection to '%s': %v", url, err)
 		}
 	}
 
@@ -190,7 +186,6 @@ func parseHeaders(inputHeaders string) http.Header {
 			parts := strings.Split(part, ":")
 			if len(parts) != 2 {
 				log.Fatalf("Invalid header format: %s", part)
-				return http.Header{}
 			}
 			header.Add(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
 		}
