@@ -71,7 +71,7 @@ func init() {
 	flag.BoolVar(&verbose, "v", false, "Print verbose output, e.g. includes the most important headers.")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [options] <url>\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage:  wsstat [options] <url>\n\n")
 		fmt.Fprintln(os.Stderr, "Options:")
 		flag.PrintDefaults()
 	}
@@ -103,10 +103,9 @@ func main() {
 		os.Exit(2)
 	}
 
-	url, err := parseWsUri(args[0])
+	url, err := parseWSURI(args[0])
 	if err != nil {
 		log.Fatalf("Error parsing input URI: %v", err)
-		return
 	}
 
 	header := parseHeaders(inputHeaders)
@@ -115,29 +114,26 @@ func main() {
 	if textMessage != "" {
 		result, response, err = wsstat.MeasureLatency(url, textMessage, header)
 		if err != nil {
-			log.Fatalf("Error establishing WS connection: %v", err)
-			return
+			handleConnectionError(err, url.String())
 		}
 	} else if jsonMessage != "" {
 		msg := struct {
 			Method string `json:"method"`
-			Id string `json:"id"`
-			RpcVersion string `json:"jsonrpc"`
+			ID string `json:"id"`
+			RPCVersion string `json:"jsonrpc"`
 		}{
 			Method: jsonMessage,
-			Id: "1",
-			RpcVersion: "2.0",
+			ID: "1",
+			RPCVersion: "2.0",
 		}
 		result, response, err = wsstat.MeasureLatencyJSON(url, msg, header)
 		if err != nil {
-			log.Fatalf("Error establishing WS connection: %v", err)
-			return
+			handleConnectionError(err, url.String())
 		}
 	} else {
 		result, err = wsstat.MeasureLatencyPing(url, header)
 		if err != nil {
-			log.Fatalf("Error establishing WS connection: %v", err)
-			return
+			handleConnectionError(err, url.String())
 		}
 	}
 
@@ -156,9 +152,14 @@ func main() {
 
 // colorWSOrange returns the text with a custom orange color.
 // The color is from the WS logo, #ff6600 is its hex code.
-// TODO: consider adding a counter color, perhaps tea green #d3f9b5
 func colorWSOrange(text string) string {
 	return customColor(255, 102, 0, text)
+}
+
+// colorTeaGreen returns the text with a custom tea green color.
+// The color has hex code #d3f9b5.
+func colorTeaGreen(text string) string {
+	return customColor(211, 249, 181, text)
 }
 
 // customColor returns the text with a custom RGB color.
@@ -176,6 +177,14 @@ func formatPadRight(d time.Duration) string {
 	return fmt.Sprintf("%-8s", strconv.Itoa(int(d/time.Millisecond))+"ms")
 }
 
+// handleConnectionError prints the error message and exits the program.
+func handleConnectionError(err error, url string) {
+	if strings.Contains(err.Error(), "tls: first record does not look like a TLS handshake") {
+		log.Fatalf("Error establishing WS connection to '%s': %v\n\nIs the target server using a secure WS connection? If not, use the '-insecure' flag or specify the correct scheme in the input.", url, err)
+	}
+	log.Fatalf("Error establishing WS connection to '%s': %v", url, err)
+}
+
 // parseHeaders parses the inputHeaders string into an HTTP header.
 func parseHeaders(inputHeaders string) http.Header {
 	header := http.Header{}
@@ -185,7 +194,6 @@ func parseHeaders(inputHeaders string) http.Header {
 			parts := strings.Split(part, ":")
 			if len(parts) != 2 {
 				log.Fatalf("Invalid header format: %s", part)
-				return http.Header{}
 			}
 			header.Add(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
 		}
@@ -193,8 +201,8 @@ func parseHeaders(inputHeaders string) http.Header {
 	return header
 }
 
-// parseWsUri parses the rawURI string into a URL object.
-func parseWsUri(rawURI string) (*url.URL, error) {
+// parseWSURI parses the rawURI string into a URL object.
+func parseWSURI(rawURI string) (*url.URL, error) {
 	if !strings.Contains(rawURI, "://") {
 		scheme := "wss://"
 		if insecure {
@@ -217,9 +225,9 @@ func printRequestDetails(result wsstat.Result) {
 
 	// Print basic output
 	if basic {
-		fmt.Printf("URL: %s\n", result.URL.Hostname())
+		fmt.Printf("%s: %s\n", colorTeaGreen("URL"), result.URL.Hostname())
 		if len(result.IPs) > 0 {
-			fmt.Printf("IP:  %s\n", result.IPs[0])
+			fmt.Printf("%s:  %s\n", colorTeaGreen("IP"), result.IPs[0])
 		}
 		return
 	}
@@ -227,19 +235,20 @@ func printRequestDetails(result wsstat.Result) {
 	// Print verbose output
 	if verbose {
 		fmt.Println(colorWSOrange("Target"))
-		fmt.Printf("  URL:  %s\n", result.URL.Hostname())
-		for i, ip := range result.IPs {
-			fmt.Printf("  IP %d: %s\n", i+1, ip)
+		fmt.Printf("  %s:  %s\n", colorTeaGreen("URL"), result.URL.Hostname())
+		// Loop in case there are multiple IPs with the target
+		for _, ip := range result.IPs {
+			fmt.Printf("  %s: %s\n", colorTeaGreen("IP"), ip)
 		}
 		fmt.Println()
 		if result.TLSState != nil {
 			fmt.Println(colorWSOrange("TLS"))
-			fmt.Printf("  Version: %s\n", tls.VersionName(result.TLSState.Version))
-			fmt.Printf("  Cipher Suite: %s\n", tls.CipherSuiteName(result.TLSState.CipherSuite))
+			fmt.Printf("  %s: %s\n", colorTeaGreen("Version"), tls.VersionName(result.TLSState.Version))
+			fmt.Printf("  %s: %s\n", colorTeaGreen("Cipher Suite"), tls.CipherSuiteName(result.TLSState.CipherSuite))
 
 			// Print the certificate details
 			for i, cert := range result.TLSState.PeerCertificates {
-				fmt.Printf("  Certificate %d\n", i+1)
+				fmt.Printf("  %s: %d\n", colorTeaGreen("Certificate"), i+1)
 				fmt.Printf("    Subject: %s\n", cert.Subject)
 				fmt.Printf("    Issuer: %s\n", cert.Issuer)
 				fmt.Printf("    Not Before: %s\n", cert.NotBefore)
@@ -249,11 +258,11 @@ func printRequestDetails(result wsstat.Result) {
 		}
 		fmt.Println(colorWSOrange("Request headers"))
 		for key, values := range result.RequestHeaders {
-			fmt.Printf("  %s: %s\n", key, strings.Join(values, ", "))
+			fmt.Printf("  %s: %s\n", colorTeaGreen(key), strings.Join(values, ", "))
 		}
 		fmt.Println(colorWSOrange("Response headers"))
 		for key, values := range result.ResponseHeaders {
-			fmt.Printf("  %s: %s\n", key, strings.Join(values, ", "))
+			fmt.Printf("  %s: %s\n", colorTeaGreen(key), strings.Join(values, ", "))
 		}
 		return
 	}
@@ -318,7 +327,7 @@ func printTimingResults(url *url.URL, result wsstat.Result) {
 // printTimingResultsBasic formats and prints only the most basic WebSocket statistics.
 func printTimingResultsBasic(result wsstat.Result) {
 	fmt.Println()
-	fmt.Printf("Total time: %dms\n", result.TotalTime.Milliseconds())
+	fmt.Printf("%s: %dms\n", colorWSOrange("Total time"), result.TotalTime.Milliseconds())
 	fmt.Println()
 }
 
@@ -360,31 +369,31 @@ func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 	switch url.Scheme {
 	case "wss":
 		fmt.Fprintf(os.Stdout, wssPrintTemplate,
-			formatPadLeft(result.DNSLookup),
-			formatPadLeft(result.TCPConnection),
-			formatPadLeft(result.TLSHandshake),
-			formatPadLeft(result.WSHandshake),
-			formatPadLeft(result.MessageRoundTrip),
+			colorTeaGreen(formatPadLeft(result.DNSLookup)),
+			colorTeaGreen(formatPadLeft(result.TCPConnection)),
+			colorTeaGreen(formatPadLeft(result.TLSHandshake)),
+			colorTeaGreen(formatPadLeft(result.WSHandshake)),
+			colorTeaGreen(formatPadLeft(result.MessageRoundTrip)),
 			//formatPadLeft(result.ConnectionClose), // Skipping this for now
-			formatPadRight(result.DNSLookupDone),
-			formatPadRight(result.TCPConnected),
-			formatPadRight(result.TLSHandshakeDone),
-			formatPadRight(result.WSHandshakeDone),
+			colorTeaGreen(formatPadRight(result.DNSLookupDone)),
+			colorTeaGreen(formatPadRight(result.TCPConnected)),
+			colorTeaGreen(formatPadRight(result.TLSHandshakeDone)),
+			colorTeaGreen(formatPadRight(result.WSHandshakeDone)),
 			//formatPadRight(result.FirstMessageResponse), // Skipping due to ConnectionClose skip
-			formatPadRight(result.TotalTime),
+			colorWSOrange(formatPadRight(result.TotalTime)),
 		)
 	case "ws":
 		fmt.Fprintf(os.Stdout, wsPrintTemplate,
-			formatPadLeft(result.DNSLookup),
-			formatPadLeft(result.TCPConnection),
-			formatPadLeft(result.WSHandshake),
-			formatPadLeft(result.MessageRoundTrip),
+			colorTeaGreen(formatPadLeft(result.DNSLookup)),
+			colorTeaGreen(formatPadLeft(result.TCPConnection)),
+			colorTeaGreen(formatPadLeft(result.WSHandshake)),
+			colorTeaGreen(formatPadLeft(result.MessageRoundTrip)),
 			//formatPadLeft(result.ConnectionClose), // Skipping this for now
-			formatPadRight(result.DNSLookupDone),
-			formatPadRight(result.TCPConnected),
-			formatPadRight(result.WSHandshakeDone),
+			colorTeaGreen(formatPadRight(result.DNSLookupDone)),
+			colorTeaGreen(formatPadRight(result.TCPConnected)),
+			colorTeaGreen(formatPadRight(result.WSHandshakeDone)),
 			//formatPadRight(result.FirstMessageResponse), // Skipping due to ConnectionClose skip
-			formatPadRight(result.TotalTime),
+			colorWSOrange(formatPadRight(result.TotalTime)),
 		)
 	}
 }
