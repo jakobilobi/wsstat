@@ -2,7 +2,11 @@
 
 [license]: /LICENSE
 
-The aim of this project is to provide a simple and easy to use tool to check the status of a WebSocket endpoint.
+The aim of this project is to provide a simple and easy to use tool to check the status of a WebSocket endpoint:
+
+```sh
+wsstat example.org
+```
 
 What I've done is to basically try to replicate what [reorx/httpstat](https://github.com/reorx/httpstat) and [davecheney/httpstat](https://github.com/davecheney/httpstat) does for HTTP requests, but instead do it for WebSocket connections, and it should be quite clear that this project draws a lot of inspiration from those two.
 
@@ -31,6 +35,16 @@ go install -ldflags "-X main.version=$(cat VERSION)" github.com/jakobilobi/wssta
 ```
 
 Note: installing the package with `@latest`  will always install the latest version no matter the other parameters of the command.
+
+### Snap installation
+
+If you are using a Linux distribution that supports Snap, you can install the tool from the Snap Store:
+
+```sh
+sudo snap install wsstat
+```
+
+The snap is listed here: [snapcraft.io/wsstat](https://snapcraft.io/wsstat)
 
 ### Binary download
 
@@ -80,4 +94,19 @@ For more options:
 
 ```sh
 wsstat -h
+```
+
+## Building
+
+To build the project from source, you can use the `go build` command ro just run the Makefile:
+
+```sh
+go build -o wsstat cmd/wsstat/main.go
+make build
+```
+
+If you need to build it for a different platform than your host machine, there's a `build-all` command available through the Makefile:
+
+```sh
+make build-all
 ```
