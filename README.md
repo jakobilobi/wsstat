@@ -1,5 +1,6 @@
-# wsstat [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
+# wsstat [![Go Documentation](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)][godocs]  [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
 
+[godocs]: http://godoc.org/github.com/jakobilobi/wsstat
 [license]: /LICENSE
 
 The aim of this project is to provide a simple and easy to use tool to check the status of a WebSocket endpoint:
