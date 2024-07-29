@@ -1,8 +1,27 @@
-# wsstat [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
+# wsstat [![Go Documentation](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)][godocs]  [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
 
+[godocs]: http://godoc.org/github.com/jakobilobi/wsstat
 [license]: /LICENSE
 
-The aim of this project is to provide a simple and easy to use tool to check the status of a WebSocket endpoint.
+The aim of this project is to provide a simple and easy to use tool to check the status of a WebSocket endpoint:
+
+```sh
+~ wsstat example.org
+
+Target: example.org
+IP: 1.2.3.4
+WS version: 13
+TLS version: TLS 1.3
+
+  DNS Lookup    TCP Connection    TLS Handshake    WS Handshake    Message RTT
+|     61ms  |           22ms  |          44ms  |         29ms  |        27ms  |
+|           |                 |                |               |              |
+|  DNS lookup:61ms            |                |               |              |
+|                 TCP connected:84ms           |               |              |
+|                                       TLS done:128ms         |              |
+|                                                        WS done:158ms        |
+-                                                                         Total:186ms
+```
 
 What I've done is to basically try to replicate what [reorx/httpstat](https://github.com/reorx/httpstat) and [davecheney/httpstat](https://github.com/davecheney/httpstat) does for HTTP requests, but instead do it for WebSocket connections, and it should be quite clear that this project draws a lot of inspiration from those two.
 
@@ -10,7 +29,15 @@ What I've done is to basically try to replicate what [reorx/httpstat](https://gi
 
 ## Installation
 
-There are a number of ways to install this tool, depending on your preference. All of them have the same result in common: you will be able to run `wsstat` from your terminal.
+There are a number of ways to install this tool, depending on your preference. The easiest one at the moment is to install via Snap, and with time I'll aim to add Homebrew support for macOS users.
+
+### Snap installation
+
+If you are using a Linux distribution that supports Snap, you can install the tool from the Snap Store:
+
+```sh
+sudo snap install wsstat
+```
 
 ### Go installation
 
@@ -31,6 +58,8 @@ go install -ldflags "-X main.version=$(cat VERSION)" github.com/jakobilobi/wssta
 ```
 
 Note: installing the package with `@latest`  will always install the latest version no matter the other parameters of the command.
+
+The snap is listed here: [snapcraft.io/wsstat](https://snapcraft.io/wsstat)
 
 ### Binary download
 
@@ -80,4 +109,19 @@ For more options:
 
 ```sh
 wsstat -h
+```
+
+## Building
+
+To build the project from source, you can use the `go build` command ro just run the Makefile:
+
+```sh
+go build -o wsstat cmd/wsstat/main.go
+make build
+```
+
+If you need to build it for a different platform than your host machine, there's a `build-all` command available through the Makefile:
+
+```sh
+make build-all
 ```
