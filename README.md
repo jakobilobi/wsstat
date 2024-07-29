@@ -6,7 +6,21 @@
 The aim of this project is to provide a simple and easy to use tool to check the status of a WebSocket endpoint:
 
 ```sh
-wsstat example.org
+~ wsstat example.org
+
+Target: example.org
+IP: 1.2.3.4
+WS version: 13
+TLS version: TLS 1.3
+
+  DNS Lookup    TCP Connection    TLS Handshake    WS Handshake    Message RTT
+|     61ms  |           22ms  |          44ms  |         29ms  |        27ms  |
+|           |                 |                |               |              |
+|  DNS lookup:61ms            |                |               |              |
+|                 TCP connected:84ms           |               |              |
+|                                       TLS done:128ms         |              |
+|                                                        WS done:158ms        |
+-                                                                         Total:186ms
 ```
 
 What I've done is to basically try to replicate what [reorx/httpstat](https://github.com/reorx/httpstat) and [davecheney/httpstat](https://github.com/davecheney/httpstat) does for HTTP requests, but instead do it for WebSocket connections, and it should be quite clear that this project draws a lot of inspiration from those two.
