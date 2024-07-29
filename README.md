@@ -14,7 +14,15 @@ What I've done is to basically try to replicate what [reorx/httpstat](https://gi
 
 ## Installation
 
-There are a number of ways to install this tool, depending on your preference. All of them have the same result in common: you will be able to run `wsstat` from your terminal.
+There are a number of ways to install this tool, depending on your preference. The easiest one at the moment is to install via Snap, and with time I'll aim to add Homebrew support for macOS users.
+
+### Snap installation
+
+If you are using a Linux distribution that supports Snap, you can install the tool from the Snap Store:
+
+```sh
+sudo snap install wsstat
+```
 
 ### Go installation
 
@@ -35,14 +43,6 @@ go install -ldflags "-X main.version=$(cat VERSION)" github.com/jakobilobi/wssta
 ```
 
 Note: installing the package with `@latest`  will always install the latest version no matter the other parameters of the command.
-
-### Snap installation
-
-If you are using a Linux distribution that supports Snap, you can install the tool from the Snap Store:
-
-```sh
-sudo snap install wsstat
-```
 
 The snap is listed here: [snapcraft.io/wsstat](https://snapcraft.io/wsstat)
 
