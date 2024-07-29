@@ -29,13 +29,13 @@ const (
 		`-                                                                         Total:%s` + "\n"
 
 	wsPrintTemplate = `` +
-	`  DNS Lookup    TCP Connection    WS Handshake    Message RTT` + "\n" +
-	`|%s  |      %s  |    %s  |  %s   |` + "\n" +
-	`|           |                 |               |              |` + "\n" +
-	`|  DNS lookup:%s        |               |              |` + "\n" +
-	`|                 TCP connected:%s      |              |` + "\n" +
-	`|                                       WS done:%s     |` + "\n" +
-	`-                                                        Total:%s` + "\n"
+		`  DNS Lookup    TCP Connection    WS Handshake    Message RTT` + "\n" +
+		`|%s  |      %s  |    %s  |  %s   |` + "\n" +
+		`|           |                 |               |              |` + "\n" +
+		`|  DNS lookup:%s        |               |              |` + "\n" +
+		`|                 TCP connected:%s      |              |` + "\n" +
+		`|                                       WS done:%s     |` + "\n" +
+		`-                                                        Total:%s` + "\n"
 )
 
 var (
@@ -45,15 +45,15 @@ var (
 	inputHeaders string
 
 	// Protocol flags
-	insecure     bool
-	
+	insecure bool
+
 	// Output flags
 	responseOnly bool
 	showVersion  bool
 
 	// Verbosity flags
-	basic        bool
-	verbose      bool
+	basic   bool
+	verbose bool
 
 	version = "unknown"
 )
@@ -118,12 +118,12 @@ func main() {
 		}
 	} else if jsonMessage != "" {
 		msg := struct {
-			Method string `json:"method"`
-			ID string `json:"id"`
+			Method     string `json:"method"`
+			ID         string `json:"id"`
 			RPCVersion string `json:"jsonrpc"`
 		}{
-			Method: jsonMessage,
-			ID: "1",
+			Method:     jsonMessage,
+			ID:         "1",
 			RPCVersion: "2.0",
 		}
 		result, response, err = wsstat.MeasureLatencyJSON(url, msg, header)
@@ -212,7 +212,7 @@ func parseWSURI(rawURI string) (*url.URL, error) {
 	}
 
 	url, err := url.Parse(rawURI)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
@@ -293,7 +293,7 @@ func printResponse(response interface{}) {
 	} else {
 		fmt.Println()
 	}
-	if responseMap, ok := response.(map[string]interface{}) ; ok {
+	if responseMap, ok := response.(map[string]interface{}); ok {
 		// If JSON in request, print response as JSON
 		if jsonMessage != "" {
 			responseJSON, err := json.Marshal(responseMap)
@@ -305,9 +305,9 @@ func printResponse(response interface{}) {
 		} else {
 			fmt.Printf("%s%v\n", baseMessage, responseMap)
 		}
-	} else if responseArray, ok := response.([]interface{}) ; ok {
+	} else if responseArray, ok := response.([]interface{}); ok {
 		fmt.Printf("%s%v\n", baseMessage, responseArray)
-	} else if responseBytes, ok := response.([]byte) ; ok {
+	} else if responseBytes, ok := response.([]byte); ok {
 		fmt.Printf("%s%v\n", baseMessage, responseBytes)
 	}
 	if !responseOnly {
@@ -327,7 +327,7 @@ func printTimingResults(url *url.URL, result wsstat.Result) {
 // printTimingResultsBasic formats and prints only the most basic WebSocket statistics.
 func printTimingResultsBasic(result wsstat.Result) {
 	fmt.Println()
-	fmt.Printf("%s: %dms\n", colorWSOrange("Total time"), result.TotalTime.Milliseconds())
+	fmt.Printf("%s: %s\n", "Total time", colorWSOrange(strconv.FormatInt(result.TotalTime.Milliseconds(), 10)+"ms"))
 	fmt.Println()
 }
 
@@ -396,4 +396,5 @@ func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 			colorWSOrange(formatPadRight(result.TotalTime)),
 		)
 	}
+	fmt.Println()
 }
