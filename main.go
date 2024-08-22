@@ -40,9 +40,10 @@ const (
 
 var (
 	// Input flags
-	jsonMessage  string
-	textMessage  string
 	inputHeaders string
+	jsonMessage  string
+	jsonMethod   string
+	textMessage  string
 
 	// Protocol flags
 	insecure bool
@@ -59,11 +60,14 @@ var (
 )
 
 func init() {
-	flag.StringVar(&textMessage, "text", "", "A text message to send to the target server. Response will be printed.")
-	flag.StringVar(&jsonMessage, "json", "", "A JSON RPC message to send to the target server. Response will be printed.")
 	flag.StringVar(&inputHeaders, "headers", "", "A comma-separated list of headers to send to the target server in the connection establishing request.")
+	flag.StringVar(&jsonMessage, "json", "", "A text format JSON RPC message to send to the target server. Response will be printed.")
+	flag.StringVar(&jsonMethod, "method", "", "A JSON RPC method to send in a JSON RPC request to the target server. For methods requiring params, use the -json flag. Response will be printed.")
+	flag.StringVar(&textMessage, "text", "", "A text message to send to the target server. Response will be printed.")
 
 	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input URL.")
+
+	// TODO: add flag for binary output, to allow piping to other commands
 	flag.BoolVar(&responseOnly, "ro", false, "Response only; print only the response. Has no effect if there's no expected response.")
 	flag.BoolVar(&showVersion, "version", false, "Print the version.")
 
@@ -116,13 +120,24 @@ func main() {
 		if err != nil {
 			handleConnectionError(err, url.String())
 		}
+		// TODO: add automatic decoding of detected byte response
 	} else if jsonMessage != "" {
+		encodedMessage := make(map[string]interface{})
+		err := json.Unmarshal([]byte(jsonMessage), &encodedMessage)
+		if err != nil {
+			log.Fatalf("Error unmarshalling JSON message: %v", err)
+		}
+		result, response, err = wsstat.MeasureLatencyJSON(url, encodedMessage, header)
+		if err != nil {
+			handleConnectionError(err, url.String())
+		}
+	} else if jsonMethod != "" {
 		msg := struct {
 			Method     string `json:"method"`
 			ID         string `json:"id"`
 			RPCVersion string `json:"jsonrpc"`
 		}{
-			Method:     jsonMessage,
+			Method:     jsonMethod,
 			ID:         "1",
 			RPCVersion: "2.0",
 		}
@@ -138,7 +153,7 @@ func main() {
 	}
 
 	// Print the results if there is no expected response or if the responseOnly flag is not set
-	if !responseOnly || (jsonMessage == "" && textMessage == "") {
+	if !responseOnly || (jsonMessage == "" && jsonMethod == "" && textMessage == "") {
 		// Print details of the request
 		printRequestDetails(result)
 
@@ -295,7 +310,7 @@ func printResponse(response interface{}) {
 	}
 	if responseMap, ok := response.(map[string]interface{}); ok {
 		// If JSON in request, print response as JSON
-		if jsonMessage != "" {
+		if jsonMessage != "" || jsonMethod != "" {
 			responseJSON, err := json.Marshal(responseMap)
 			if err != nil {
 				fmt.Printf("Could not marshal response to JSON. Response: %v, error: %v", responseMap, err)
