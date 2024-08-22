@@ -310,7 +310,7 @@ func printResponse(response interface{}) {
 	}
 	if responseMap, ok := response.(map[string]interface{}); ok {
 		// If JSON in request, print response as JSON
-		if jsonMessage != "" {
+		if jsonMessage != "" || jsonMethod != "" {
 			responseJSON, err := json.Marshal(responseMap)
 			if err != nil {
 				fmt.Printf("Could not marshal response to JSON. Response: %v, error: %v", responseMap, err)
