@@ -49,8 +49,9 @@ var (
 	insecure bool
 
 	// Output flags
-	responseOnly bool
-	showVersion  bool
+	rawOutput   bool
+	quietOutput bool
+	showVersion bool
 
 	// Verbosity flags
 	basic   bool
@@ -67,8 +68,8 @@ func init() {
 
 	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input URL.")
 
-	// TODO: add flag for binary output, to allow piping to other commands
-	flag.BoolVar(&responseOnly, "ro", false, "Response only; print only the response. Has no effect if there's no expected response.")
+	flag.BoolVar(&rawOutput, "raw", false, "Force output to be the raw data of the response.")
+	flag.BoolVar(&quietOutput, "quiet", false, "Quiet all output but the response.")
 	flag.BoolVar(&showVersion, "version", false, "Print the version.")
 
 	flag.BoolVar(&basic, "b", false, "Print only basic output.")
@@ -120,7 +121,14 @@ func main() {
 		if err != nil {
 			handleConnectionError(err, url.String())
 		}
-		// TODO: add automatic decoding of detected byte response
+		if !rawOutput {
+			decodedMessage := make(map[string]interface{})
+			err := json.Unmarshal(response.([]byte), &decodedMessage)
+			if err != nil {
+				log.Fatalf("Error unmarshalling JSON message: %v", err)
+			}
+			response = decodedMessage
+		}
 	} else if jsonMessage != "" {
 		encodedMessage := make(map[string]interface{})
 		err := json.Unmarshal([]byte(jsonMessage), &encodedMessage)
@@ -152,8 +160,8 @@ func main() {
 		}
 	}
 
-	// Print the results if there is no expected response or if the responseOnly flag is not set
-	if !responseOnly || (jsonMessage == "" && jsonMethod == "" && textMessage == "") {
+	// Print the results if there is no expected response or if the quietOutput flag is not set
+	if !quietOutput {
 		// Print details of the request
 		printRequestDetails(result)
 
@@ -303,14 +311,17 @@ func printResponse(response interface{}) {
 		return
 	}
 	baseMessage := colorWSOrange("Response") + ": "
-	if responseOnly {
+	if quietOutput {
 		baseMessage = ""
 	} else {
 		fmt.Println()
 	}
-	if responseMap, ok := response.(map[string]interface{}); ok {
+	if rawOutput {
+		// If raw output is requested, print the raw data before trying to assert any types
+		fmt.Printf("%s%v\n", baseMessage, response)
+	} else if responseMap, ok := response.(map[string]interface{}); ok {
 		// If JSON in request, print response as JSON
-		if jsonMessage != "" || jsonMethod != "" {
+		if _, isJSON := responseMap["jsonrpc"]; isJSON || jsonMessage != "" || jsonMethod != "" {
 			responseJSON, err := json.Marshal(responseMap)
 			if err != nil {
 				fmt.Printf("Could not marshal response to JSON. Response: %v, error: %v", responseMap, err)
@@ -325,7 +336,7 @@ func printResponse(response interface{}) {
 	} else if responseBytes, ok := response.([]byte); ok {
 		fmt.Printf("%s%v\n", baseMessage, responseBytes)
 	}
-	if !responseOnly {
+	if !quietOutput {
 		fmt.Println()
 	}
 }
