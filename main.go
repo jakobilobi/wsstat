@@ -49,6 +49,7 @@ var (
 	insecure bool
 
 	// Output flags
+	rawOutput   bool
 	quietOutput bool
 	showVersion bool
 
@@ -67,6 +68,7 @@ func init() {
 
 	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input URL.")
 
+	flag.BoolVar(&rawOutput, "raw", false, "Force output to be the raw data of the response.")
 	flag.BoolVar(&quietOutput, "quiet", false, "Quiet all output but the response.")
 	flag.BoolVar(&showVersion, "version", false, "Print the version.")
 
@@ -119,7 +121,14 @@ func main() {
 		if err != nil {
 			handleConnectionError(err, url.String())
 		}
-		// TODO: add automatic decoding of detected byte response
+		if !rawOutput {
+			decodedMessage := make(map[string]interface{})
+			err := json.Unmarshal(response.([]byte), &decodedMessage)
+			if err != nil {
+				log.Fatalf("Error unmarshalling JSON message: %v", err)
+			}
+			response = decodedMessage
+		}
 	} else if jsonMessage != "" {
 		encodedMessage := make(map[string]interface{})
 		err := json.Unmarshal([]byte(jsonMessage), &encodedMessage)
@@ -307,9 +316,12 @@ func printResponse(response interface{}) {
 	} else {
 		fmt.Println()
 	}
-	if responseMap, ok := response.(map[string]interface{}); ok {
+	if rawOutput {
+		// If raw output is requested, print the raw data before trying to assert any types
+		fmt.Printf("%s%v\n", baseMessage, response)
+	} else if responseMap, ok := response.(map[string]interface{}); ok {
 		// If JSON in request, print response as JSON
-		if jsonMessage != "" || jsonMethod != "" {
+		if _, isJSON := responseMap["jsonrpc"]; isJSON || jsonMessage != "" || jsonMethod != "" {
 			responseJSON, err := json.Marshal(responseMap)
 			if err != nil {
 				fmt.Printf("Could not marshal response to JSON. Response: %v, error: %v", responseMap, err)
