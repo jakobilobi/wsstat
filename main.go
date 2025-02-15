@@ -11,7 +11,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	"github.com/jakobilobi/go-wsstat"
@@ -39,134 +38,66 @@ const (
 )
 
 var (
-	// Input flags
-	inputHeaders string
-	jsonMessage  string
-	jsonMethod   string
-	textMessage  string
-
-	// Protocol flags
-	insecure bool
-
-	// Output flags
-	rawOutput   bool
-	quietOutput bool
-	showVersion bool
-
-	// Verbosity flags
-	basic   bool
-	verbose bool
-
-	version = "unknown"
+	// Input
+	inputHeaders = flag.String("headers", "", "comma-separated headers for the connection establishing request")
+	jsonMethod   = flag.String("json", "", "a single JSON RPC method to send ")
+	textMessage  = flag.String("text", "", "a text message to send")
+	// Output
+	rawOutput   = flag.Bool("raw", false, "let printed output be the raw data of the response")
+	quietOutput = flag.Bool("quiet", false, "quiet all output but the response")
+	showVersion = flag.Bool("version", false, "print the program version")
+	version     = "unknown"
+	// Protocol
+	insecure = flag.Bool("insecure", false, "open an insecure WS connection in case of missing scheme in the input")
+	// Verbosity
+	basic   = flag.Bool("b", false, "print basic output")
+	verbose = flag.Bool("v", false, "print verbose output")
 )
 
 func init() {
-	flag.StringVar(&inputHeaders, "headers", "", "A comma-separated list of headers to send to the target server in the connection establishing request.")
-	flag.StringVar(&jsonMessage, "json", "", "A text format JSON RPC message to send to the target server. Response will be printed.")
-	flag.StringVar(&jsonMethod, "method", "", "A JSON RPC method to send in a JSON RPC request to the target server. For methods requiring params, use the -json flag. Response will be printed.")
-	flag.StringVar(&textMessage, "text", "", "A text message to send to the target server. Response will be printed.")
-
-	flag.BoolVar(&insecure, "insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input URL.")
-
-	flag.BoolVar(&rawOutput, "raw", false, "Force output to be the raw data of the response.")
-	flag.BoolVar(&quietOutput, "quiet", false, "Quiet all output but the response.")
-	flag.BoolVar(&showVersion, "version", false, "Print the version.")
-
-	flag.BoolVar(&basic, "b", false, "Print only basic output.")
-	flag.BoolVar(&verbose, "v", false, "Print verbose output, e.g. includes the most important headers.")
-
+	// Define custom usage message
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage:  wsstat [options] <url>\n\n")
-		fmt.Fprintln(os.Stderr, "Options:")
-		flag.PrintDefaults()
+		fmt.Fprintln(os.Stderr, "Usage:  wsstat [options] <url>")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Mutually exclusive input options:")
+		fmt.Fprintln(os.Stderr, "  -json  "+flag.Lookup("json").Usage)
+		fmt.Fprintln(os.Stderr, "  -text  "+flag.Lookup("text").Usage)
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Mutually exclusive output options:")
+		fmt.Fprintln(os.Stderr, "  -b  "+flag.Lookup("b").Usage)
+		fmt.Fprintln(os.Stderr, "  -v  "+flag.Lookup("v").Usage)
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Other options:")
+		fmt.Fprintln(os.Stderr, "  -headers   "+flag.Lookup("headers").Usage)
+		fmt.Fprintln(os.Stderr, "  -raw       "+flag.Lookup("raw").Usage)
+		fmt.Fprintln(os.Stderr, "  -quiet     "+flag.Lookup("quiet").Usage)
+		fmt.Fprintln(os.Stderr, "  -insecure  "+flag.Lookup("insecure").Usage)
+		fmt.Fprintln(os.Stderr, "  -version   "+flag.Lookup("version").Usage)
 	}
 }
 
 func main() {
-	flag.Parse()
-
-	if showVersion {
-		fmt.Printf("Version: %s\n", version)
-		os.Exit(0)
-	}
-
-	if basic && verbose {
-		fmt.Print("The basic and verbose flags are mutually exclusive, choose one.\n\n")
-		flag.Usage()
-		os.Exit(2)
-	}
-
-	args := flag.Args()
-	if len(args) != 1 {
-		flag.Usage()
-		os.Exit(2)
-	}
-
-	if textMessage != "" && jsonMessage != "" {
-		fmt.Print("The message options are mutually exclusive, choose one.\n\n")
-		flag.Usage()
-		os.Exit(2)
-	}
-
-	url, err := parseWSURI(args[0])
+	url, err := parseValidateInput()
 	if err != nil {
-		log.Fatalf("Error parsing input URI: %v", err)
+		fmt.Printf("Error parsing input: %v\n\n", err)
+		flag.Usage()
+		os.Exit(1)
 	}
 
-	header := parseHeaders(inputHeaders)
-	var result wsstat.Result
-	var response interface{}
-	if textMessage != "" {
-		result, response, err = wsstat.MeasureLatency(url, textMessage, header)
-		if err != nil {
-			handleConnectionError(err, url.String())
-		}
-		if !rawOutput {
-			decodedMessage := make(map[string]interface{})
-			err := json.Unmarshal(response.([]byte), &decodedMessage)
-			if err != nil {
-				log.Fatalf("Error unmarshalling JSON message: %v", err)
-			}
-			response = decodedMessage
-		}
-	} else if jsonMessage != "" {
-		encodedMessage := make(map[string]interface{})
-		err := json.Unmarshal([]byte(jsonMessage), &encodedMessage)
-		if err != nil {
-			log.Fatalf("Error unmarshalling JSON message: %v", err)
-		}
-		result, response, err = wsstat.MeasureLatencyJSON(url, encodedMessage, header)
-		if err != nil {
-			handleConnectionError(err, url.String())
-		}
-	} else if jsonMethod != "" {
-		msg := struct {
-			Method     string `json:"method"`
-			ID         string `json:"id"`
-			RPCVersion string `json:"jsonrpc"`
-		}{
-			Method:     jsonMethod,
-			ID:         "1",
-			RPCVersion: "2.0",
-		}
-		result, response, err = wsstat.MeasureLatencyJSON(url, msg, header)
-		if err != nil {
-			handleConnectionError(err, url.String())
-		}
-	} else {
-		result, err = wsstat.MeasureLatencyPing(url, header)
-		if err != nil {
-			handleConnectionError(err, url.String())
-		}
+	header := parseHeaders(*inputHeaders)
+	result, response, err := measureLatency(url, header)
+	if err != nil {
+		fmt.Printf("Error measuring latency: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Print the results if there is no expected response or if the quietOutput flag is not set
-	if !quietOutput {
+	if !*quietOutput {
 		// Print details of the request
-		printRequestDetails(result)
+		printRequestDetails(*result)
 
 		// Print the timing results
-		printTimingResults(url, result)
+		printTimingResults(url, *result)
 	}
 
 	// Print the response, if there is one
@@ -201,20 +132,63 @@ func formatPadRight(d time.Duration) string {
 }
 
 // handleConnectionError prints the error message and exits the program.
-func handleConnectionError(err error, url string) {
+func handleConnectionError(err error, url string) error {
 	if strings.Contains(err.Error(), "tls: first record does not look like a TLS handshake") {
-		log.Fatalf("Error establishing WS connection to '%s': %v\n\nIs the target server using a secure WS connection? If not, use the '-insecure' flag or specify the correct scheme in the input.", url, err)
+		return fmt.Errorf("error establishing secure WS connection to '%s': %v", url, err)
 	}
-	log.Fatalf("Error establishing WS connection to '%s': %v", url, err)
+	return fmt.Errorf("error establishing WS connection to '%s': %v", url, err)
 }
 
-// parseHeaders parses the inputHeaders string into an HTTP header.
-func parseHeaders(inputHeaders string) http.Header {
+// measureLatency measures the latency of the WebSocket connection, applying different methods
+// based on the flags passed to the program.
+func measureLatency(url *url.URL, header http.Header) (*wsstat.Result, interface{}, error) {
+	var result wsstat.Result
+	var response interface{}
+	var err error
+	if *textMessage != "" {
+		result, response, err = wsstat.MeasureLatency(url, *textMessage, header)
+		if err != nil {
+			return nil, nil, handleConnectionError(err, url.String())
+		}
+		if !*rawOutput {
+			decodedMessage := make(map[string]interface{})
+			err := json.Unmarshal(response.([]byte), &decodedMessage)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error unmarshalling JSON message: %v", err)
+			}
+			response = decodedMessage
+		}
+	} else if *jsonMethod != "" {
+		msg := struct {
+			Method     string `json:"method"`
+			ID         string `json:"id"`
+			RPCVersion string `json:"jsonrpc"`
+		}{
+			Method:     *jsonMethod,
+			ID:         "1",
+			RPCVersion: "2.0",
+		}
+		result, response, err = wsstat.MeasureLatencyJSON(url, msg, header)
+		if err != nil {
+			return nil, nil, handleConnectionError(err, url.String())
+		}
+	} else {
+		result, err = wsstat.MeasureLatencyPing(url, header)
+		if err != nil {
+			return nil, nil, handleConnectionError(err, url.String())
+		}
+	}
+	res := &result
+	return res, response, nil
+}
+
+// parseHeaders parses comma separated headers into an HTTP header.
+func parseHeaders(headers string) http.Header {
 	header := http.Header{}
-	if inputHeaders != "" {
-		headerParts := strings.Split(inputHeaders, ",")
+	if headers != "" {
+		headerParts := strings.Split(headers, ",")
 		for _, part := range headerParts {
-			parts := strings.Split(part, ":")
+			parts := strings.SplitN(part, ":", 2)
 			if len(parts) != 2 {
 				log.Fatalf("Invalid header format: %s", part)
 			}
@@ -228,7 +202,7 @@ func parseHeaders(inputHeaders string) http.Header {
 func parseWSURI(rawURI string) (*url.URL, error) {
 	if !strings.Contains(rawURI, "://") {
 		scheme := "wss://"
-		if insecure {
+		if *insecure {
 			scheme = "ws://"
 		}
 		rawURI = scheme + rawURI
@@ -247,7 +221,7 @@ func printRequestDetails(result wsstat.Result) {
 	fmt.Println()
 
 	// Print basic output
-	if basic {
+	if *basic {
 		fmt.Printf("%s: %s\n", colorTeaGreen("URL"), result.URL.Hostname())
 		if len(result.IPs) > 0 {
 			fmt.Printf("%s:  %s\n", colorTeaGreen("IP"), result.IPs[0])
@@ -256,7 +230,7 @@ func printRequestDetails(result wsstat.Result) {
 	}
 
 	// Print verbose output
-	if verbose {
+	if *verbose {
 		fmt.Println(colorWSOrange("Target"))
 		fmt.Printf("  %s:  %s\n", colorTeaGreen("URL"), result.URL.Hostname())
 		// Loop in case there are multiple IPs with the target
@@ -311,17 +285,17 @@ func printResponse(response interface{}) {
 		return
 	}
 	baseMessage := colorWSOrange("Response") + ": "
-	if quietOutput {
+	if *quietOutput {
 		baseMessage = ""
 	} else {
 		fmt.Println()
 	}
-	if rawOutput {
+	if *rawOutput {
 		// If raw output is requested, print the raw data before trying to assert any types
 		fmt.Printf("%s%v\n", baseMessage, response)
 	} else if responseMap, ok := response.(map[string]interface{}); ok {
 		// If JSON in request, print response as JSON
-		if _, isJSON := responseMap["jsonrpc"]; isJSON || jsonMessage != "" || jsonMethod != "" {
+		if _, isJSON := responseMap["jsonrpc"]; isJSON || *jsonMethod != "" {
 			responseJSON, err := json.Marshal(responseMap)
 			if err != nil {
 				fmt.Printf("Could not marshal response to JSON. Response: %v, error: %v", responseMap, err)
@@ -336,14 +310,14 @@ func printResponse(response interface{}) {
 	} else if responseBytes, ok := response.([]byte); ok {
 		fmt.Printf("%s%v\n", baseMessage, responseBytes)
 	}
-	if !quietOutput {
+	if !*quietOutput {
 		fmt.Println()
 	}
 }
 
 // printTimingResults prints the WebSocket statistics to the terminal.
 func printTimingResults(url *url.URL, result wsstat.Result) {
-	if basic {
+	if *basic {
 		printTimingResultsBasic(result)
 	} else {
 		printTimingResultsTiered(url, result)
@@ -355,38 +329,6 @@ func printTimingResultsBasic(result wsstat.Result) {
 	fmt.Println()
 	fmt.Printf("%s: %s\n", "Total time", colorWSOrange(strconv.FormatInt(result.TotalTime.Milliseconds(), 10)+"ms"))
 	fmt.Println()
-}
-
-// printTimingResultsSimple formats and prints the WebSocket statistics to the terminal.
-func printTimingResultsSimple(result wsstat.Result) {
-	const padding = 2
-	fmt.Println()
-
-	// Tab writer to help with formatting a tab-separated output
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.TabIndent)
-
-	// Add headers for the printout
-	headers := []string{"DNS Lookup", "TCP Connection", "TLS Handshake", "WS Handshake", "Message Round-Trip", "Connection Close"}
-	fmt.Fprintln(w, strings.Join(headers, "\t|\t")+"\t")
-
-	// Add the result numbers
-	stats := []string{
-		fmt.Sprintf("%dms", result.DNSLookup.Milliseconds()),
-		fmt.Sprintf("%dms", result.TCPConnection.Milliseconds()),
-		fmt.Sprintf("%dms", result.TLSHandshake.Milliseconds()),
-		fmt.Sprintf("%dms", result.WSHandshake.Milliseconds()),
-		fmt.Sprintf("%dms", result.MessageRoundTrip.Milliseconds()),
-		fmt.Sprintf("%dms", result.ConnectionClose.Milliseconds()),
-	}
-	fmt.Fprintln(w, strings.Join(stats, "\t|\t")+"\t")
-
-	// Write the tabbed output to the writer, flush it to stdout
-	if err := w.Flush(); err != nil {
-		panic(err)
-	}
-
-	// Finally, print the total time
-	fmt.Printf("\nTotal time:\t%s\t\n", fmt.Sprintf("%dms", result.TotalTime.Milliseconds()))
 }
 
 // printTimingResultsTiered formats and prints the WebSocket statistics to the terminal in a tiered fashion.
@@ -423,4 +365,34 @@ func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 		)
 	}
 	fmt.Println()
+}
+
+// parseValidateInput parses and validates the flags and input passed to the program.
+func parseValidateInput() (*url.URL, error) {
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("Version: %s\n", version)
+		os.Exit(0)
+	}
+
+	if *basic && *verbose {
+		return nil, fmt.Errorf("mutually exclusive verbosity flags")
+	}
+
+	if *textMessage != "" && *jsonMethod != "" {
+		return nil, fmt.Errorf("mutually exclusive messaging flags")
+	}
+
+	args := flag.Args()
+	if len(args) != 1 {
+		return nil, fmt.Errorf("invalid number of arguments")
+	}
+
+	url, err := parseWSURI(args[0])
+	if err != nil {
+		return nil, fmt.Errorf("error parsing input URI: %v", err)
+	}
+
+	return url, nil
 }
