@@ -208,13 +208,13 @@ func handleConnectionError(err error, url string) {
 	log.Fatalf("Error establishing WS connection to '%s': %v", url, err)
 }
 
-// parseHeaders parses the inputHeaders string into an HTTP header.
-func parseHeaders(inputHeaders string) http.Header {
+// parseHeaders parses comma separated headers into an HTTP header.
+func parseHeaders(headers string) http.Header {
 	header := http.Header{}
-	if inputHeaders != "" {
-		headerParts := strings.Split(inputHeaders, ",")
+	if headers != "" {
+		headerParts := strings.Split(headers, ",")
 		for _, part := range headerParts {
-			parts := strings.Split(part, ":")
+			parts := strings.SplitN(part, ":", 2)
 			if len(parts) != 2 {
 				log.Fatalf("Invalid header format: %s", part)
 			}
