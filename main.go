@@ -11,7 +11,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	"github.com/jakobilobi/go-wsstat"
@@ -303,38 +302,6 @@ func printTimingResultsBasic(result wsstat.Result) {
 	fmt.Println()
 	fmt.Printf("%s: %s\n", "Total time", colorWSOrange(strconv.FormatInt(result.TotalTime.Milliseconds(), 10)+"ms"))
 	fmt.Println()
-}
-
-// printTimingResultsSimple formats and prints the WebSocket statistics to the terminal.
-func printTimingResultsSimple(result wsstat.Result) {
-	const padding = 2
-	fmt.Println()
-
-	// Tab writer to help with formatting a tab-separated output
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', tabwriter.TabIndent)
-
-	// Add headers for the printout
-	headers := []string{"DNS Lookup", "TCP Connection", "TLS Handshake", "WS Handshake", "Message Round-Trip", "Connection Close"}
-	fmt.Fprintln(w, strings.Join(headers, "\t|\t")+"\t")
-
-	// Add the result numbers
-	stats := []string{
-		fmt.Sprintf("%dms", result.DNSLookup.Milliseconds()),
-		fmt.Sprintf("%dms", result.TCPConnection.Milliseconds()),
-		fmt.Sprintf("%dms", result.TLSHandshake.Milliseconds()),
-		fmt.Sprintf("%dms", result.WSHandshake.Milliseconds()),
-		fmt.Sprintf("%dms", result.MessageRoundTrip.Milliseconds()),
-		fmt.Sprintf("%dms", result.ConnectionClose.Milliseconds()),
-	}
-	fmt.Fprintln(w, strings.Join(stats, "\t|\t")+"\t")
-
-	// Write the tabbed output to the writer, flush it to stdout
-	if err := w.Flush(); err != nil {
-		panic(err)
-	}
-
-	// Finally, print the total time
-	fmt.Printf("\nTotal time:\t%s\t\n", fmt.Sprintf("%dms", result.TotalTime.Milliseconds()))
 }
 
 // printTimingResultsTiered formats and prints the WebSocket statistics to the terminal in a tiered fashion.
