@@ -85,49 +85,19 @@ func main() {
 	}
 
 	header := parseHeaders(*inputHeaders)
-	var result wsstat.Result
-	var response interface{}
-	if *textMessage != "" {
-		result, response, err = wsstat.MeasureLatency(url, *textMessage, header)
-		if err != nil {
-			handleConnectionError(err, url.String())
-		}
-		if !*rawOutput {
-			decodedMessage := make(map[string]interface{})
-			err := json.Unmarshal(response.([]byte), &decodedMessage)
-			if err != nil {
-				log.Fatalf("Error unmarshalling JSON message: %v", err)
-			}
-			response = decodedMessage
-		}
-	} else if *jsonMethod != "" {
-		msg := struct {
-			Method     string `json:"method"`
-			ID         string `json:"id"`
-			RPCVersion string `json:"jsonrpc"`
-		}{
-			Method:     *jsonMethod,
-			ID:         "1",
-			RPCVersion: "2.0",
-		}
-		result, response, err = wsstat.MeasureLatencyJSON(url, msg, header)
-		if err != nil {
-			handleConnectionError(err, url.String())
-		}
-	} else {
-		result, err = wsstat.MeasureLatencyPing(url, header)
-		if err != nil {
-			handleConnectionError(err, url.String())
-		}
+	result, response, err := measureLatency(url, header)
+	if err != nil {
+		fmt.Printf("Error measuring latency: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Print the results if there is no expected response or if the quietOutput flag is not set
 	if !*quietOutput {
 		// Print details of the request
-		printRequestDetails(result)
+		printRequestDetails(*result)
 
 		// Print the timing results
-		printTimingResults(url, result)
+		printTimingResults(url, *result)
 	}
 
 	// Print the response, if there is one
@@ -162,11 +132,54 @@ func formatPadRight(d time.Duration) string {
 }
 
 // handleConnectionError prints the error message and exits the program.
-func handleConnectionError(err error, url string) {
+func handleConnectionError(err error, url string) error {
 	if strings.Contains(err.Error(), "tls: first record does not look like a TLS handshake") {
-		log.Fatalf("Error establishing WS connection to '%s': %v\n\nIs the target server using a secure WS connection? If not, use the '-insecure' flag or specify the correct scheme in the input.", url, err)
+		return fmt.Errorf("error establishing secure WS connection to '%s': %v", url, err)
 	}
-	log.Fatalf("Error establishing WS connection to '%s': %v", url, err)
+	return fmt.Errorf("error establishing WS connection to '%s': %v", url, err)
+}
+
+// measureLatency measures the latency of the WebSocket connection, applying different methods
+// based on the flags passed to the program.
+func measureLatency(url *url.URL, header http.Header) (*wsstat.Result, interface{}, error) {
+	var result wsstat.Result
+	var response interface{}
+	var err error
+	if *textMessage != "" {
+		result, response, err = wsstat.MeasureLatency(url, *textMessage, header)
+		if err != nil {
+			return nil, nil, handleConnectionError(err, url.String())
+		}
+		if !*rawOutput {
+			decodedMessage := make(map[string]interface{})
+			err := json.Unmarshal(response.([]byte), &decodedMessage)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error unmarshalling JSON message: %v", err)
+			}
+			response = decodedMessage
+		}
+	} else if *jsonMethod != "" {
+		msg := struct {
+			Method     string `json:"method"`
+			ID         string `json:"id"`
+			RPCVersion string `json:"jsonrpc"`
+		}{
+			Method:     *jsonMethod,
+			ID:         "1",
+			RPCVersion: "2.0",
+		}
+		result, response, err = wsstat.MeasureLatencyJSON(url, msg, header)
+		if err != nil {
+			return nil, nil, handleConnectionError(err, url.String())
+		}
+	} else {
+		result, err = wsstat.MeasureLatencyPing(url, header)
+		if err != nil {
+			return nil, nil, handleConnectionError(err, url.String())
+		}
+	}
+	res := &result
+	return res, response, nil
 }
 
 // parseHeaders parses comma separated headers into an HTTP header.
