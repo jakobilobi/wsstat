@@ -41,8 +41,7 @@ const (
 var (
 	// Input
 	inputHeaders = flag.String("headers", "", "A comma-separated list of headers to send to the target server in the connection establishing request.")
-	jsonMessage  = flag.String("json", "", "A text format JSON RPC message to send to the target server. Response will be printed.")
-	jsonMethod   = flag.String("method", "", "A JSON RPC method to send in a JSON RPC request to the target server. For methods requiring params, use the -json flag. Response will be printed.")
+	jsonMethod   = flag.String("json", "", "send a single JSON RPC method to the target endpoint")
 	textMessage  = flag.String("text", "", "A text message to send to the target server. Response will be printed.")
 	// Output
 	rawOutput   = flag.Bool("raw", false, "Force output to be the raw data of the response.")
@@ -65,34 +64,11 @@ func init() {
 }
 
 func main() {
-	flag.Parse()
-
-	if *showVersion {
-		fmt.Printf("Version: %s\n", version)
-		os.Exit(0)
-	}
-
-	if *basic && *verbose {
-		fmt.Print("The basic and verbose flags are mutually exclusive, choose one.\n\n")
-		flag.Usage()
-		os.Exit(2)
-	}
-
-	args := flag.Args()
-	if len(args) != 1 {
-		flag.Usage()
-		os.Exit(2)
-	}
-
-	if *textMessage != "" && *jsonMessage != "" {
-		fmt.Print("The message options are mutually exclusive, choose one.\n\n")
-		flag.Usage()
-		os.Exit(2)
-	}
-
-	url, err := parseWSURI(args[0])
+	url, err := parseValidateInput()
 	if err != nil {
-		log.Fatalf("Error parsing input URI: %v", err)
+		fmt.Printf("Error parsing input: %v\n\n", err)
+		flag.Usage()
+		os.Exit(1)
 	}
 
 	header := parseHeaders(*inputHeaders)
@@ -110,16 +86,6 @@ func main() {
 				log.Fatalf("Error unmarshalling JSON message: %v", err)
 			}
 			response = decodedMessage
-		}
-	} else if *jsonMessage != "" {
-		encodedMessage := make(map[string]interface{})
-		err := json.Unmarshal([]byte(*jsonMessage), &encodedMessage)
-		if err != nil {
-			log.Fatalf("Error unmarshalling JSON message: %v", err)
-		}
-		result, response, err = wsstat.MeasureLatencyJSON(url, encodedMessage, header)
-		if err != nil {
-			handleConnectionError(err, url.String())
 		}
 	} else if *jsonMethod != "" {
 		msg := struct {
@@ -303,7 +269,7 @@ func printResponse(response interface{}) {
 		fmt.Printf("%s%v\n", baseMessage, response)
 	} else if responseMap, ok := response.(map[string]interface{}); ok {
 		// If JSON in request, print response as JSON
-		if _, isJSON := responseMap["jsonrpc"]; isJSON || *jsonMessage != "" || *jsonMethod != "" {
+		if _, isJSON := responseMap["jsonrpc"]; isJSON || *jsonMethod != "" {
 			responseJSON, err := json.Marshal(responseMap)
 			if err != nil {
 				fmt.Printf("Could not marshal response to JSON. Response: %v, error: %v", responseMap, err)
@@ -405,4 +371,34 @@ func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 		)
 	}
 	fmt.Println()
+}
+
+// parseValidateInput parses and validates the flags and input passed to the program.
+func parseValidateInput() (*url.URL, error) {
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("Version: %s\n", version)
+		os.Exit(0)
+	}
+
+	if *basic && *verbose {
+		return nil, fmt.Errorf("mutually exclusive verbosity flags")
+	}
+
+	if *textMessage != "" && *jsonMethod != "" {
+		return nil, fmt.Errorf("mutually exclusive messaging flags")
+	}
+
+	args := flag.Args()
+	if len(args) != 1 {
+		return nil, fmt.Errorf("invalid number of arguments")
+	}
+
+	url, err := parseWSURI(args[0])
+	if err != nil {
+		return nil, fmt.Errorf("error parsing input URI: %v", err)
+	}
+
+	return url, nil
 }
