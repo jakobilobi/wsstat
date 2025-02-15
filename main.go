@@ -40,19 +40,19 @@ const (
 
 var (
 	// Input
-	inputHeaders = flag.String("headers", "", "A comma-separated list of headers to send to the target server in the connection establishing request.")
+	inputHeaders = flag.String("headers", "", "comma-separated headers to use in the connection establishing request")
 	jsonMethod   = flag.String("json", "", "send a single JSON RPC method to the target endpoint")
-	textMessage  = flag.String("text", "", "A text message to send to the target server. Response will be printed.")
+	textMessage  = flag.String("text", "", "send a text message to the target endpoint")
 	// Output
-	rawOutput   = flag.Bool("raw", false, "Force output to be the raw data of the response.")
-	quietOutput = flag.Bool("quiet", false, "Quiet all output but the response.")
-	showVersion = flag.Bool("version", false, "Print the version.")
+	rawOutput   = flag.Bool("raw", false, "let printed output be the raw data of the response")
+	quietOutput = flag.Bool("quiet", false, "quiet all output but the response")
+	showVersion = flag.Bool("version", false, "print the program version")
 	version     = "unknown"
 	// Protocol
-	insecure = flag.Bool("insecure", false, "Open an insecure WS connection in the case of no scheme being present in the input URL.")
+	insecure = flag.Bool("insecure", false, "open an insecure WS connection in case of missing scheme in the input")
 	// Verbosity
-	basic   = flag.Bool("b", false, "Print only basic output.")
-	verbose = flag.Bool("v", false, "Print verbose output, e.g. includes the most important headers.")
+	basic   = flag.Bool("b", false, "print basic output")
+	verbose = flag.Bool("v", false, "print verbose output")
 )
 
 func init() {
