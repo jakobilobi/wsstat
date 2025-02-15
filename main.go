@@ -39,9 +39,9 @@ const (
 
 var (
 	// Input
-	inputHeaders = flag.String("headers", "", "comma-separated headers to use in the connection establishing request")
-	jsonMethod   = flag.String("json", "", "send a single JSON RPC method to the target endpoint")
-	textMessage  = flag.String("text", "", "send a text message to the target endpoint")
+	inputHeaders = flag.String("headers", "", "comma-separated headers for the connection establishing request")
+	jsonMethod   = flag.String("json", "", "a single JSON RPC method to send ")
+	textMessage  = flag.String("text", "", "a text message to send")
 	// Output
 	rawOutput   = flag.Bool("raw", false, "let printed output be the raw data of the response")
 	quietOutput = flag.Bool("quiet", false, "quiet all output but the response")
@@ -55,10 +55,24 @@ var (
 )
 
 func init() {
+	// Define custom usage message
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage:  wsstat [options] <url>\n\n")
-		fmt.Fprintln(os.Stderr, "Options:")
-		flag.PrintDefaults()
+		fmt.Fprintln(os.Stderr, "Usage:  wsstat [options] <url>")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Mutually exclusive input options:")
+		fmt.Fprintln(os.Stderr, "  -json  "+flag.Lookup("json").Usage)
+		fmt.Fprintln(os.Stderr, "  -text  "+flag.Lookup("text").Usage)
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Mutually exclusive output options:")
+		fmt.Fprintln(os.Stderr, "  -b  "+flag.Lookup("b").Usage)
+		fmt.Fprintln(os.Stderr, "  -v  "+flag.Lookup("v").Usage)
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Other options:")
+		fmt.Fprintln(os.Stderr, "  -headers   "+flag.Lookup("headers").Usage)
+		fmt.Fprintln(os.Stderr, "  -raw       "+flag.Lookup("raw").Usage)
+		fmt.Fprintln(os.Stderr, "  -quiet     "+flag.Lookup("quiet").Usage)
+		fmt.Fprintln(os.Stderr, "  -insecure  "+flag.Lookup("insecure").Usage)
+		fmt.Fprintln(os.Stderr, "  -version   "+flag.Lookup("version").Usage)
 	}
 }
 
