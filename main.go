@@ -142,7 +142,7 @@ func handleConnectionError(err error, url string) error {
 // measureLatency measures the latency of the WebSocket connection, applying different methods
 // based on the flags passed to the program.
 func measureLatency(url *url.URL, header http.Header) (*wsstat.Result, interface{}, error) {
-	var result wsstat.Result
+	var result *wsstat.Result
 	var response interface{}
 	var err error
 	if *textMessage != "" {
@@ -178,7 +178,7 @@ func measureLatency(url *url.URL, header http.Header) (*wsstat.Result, interface
 			return nil, nil, handleConnectionError(err, url.String())
 		}
 	}
-	res := &result
+	res := result
 	return res, response, nil
 }
 
@@ -341,7 +341,7 @@ func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 			colorTeaGreen(formatPadLeft(result.TCPConnection)),
 			colorTeaGreen(formatPadLeft(result.TLSHandshake)),
 			colorTeaGreen(formatPadLeft(result.WSHandshake)),
-			colorTeaGreen(formatPadLeft(result.MessageRoundTrip)),
+			colorTeaGreen(formatPadLeft(result.MessageRTT)),
 			//formatPadLeft(result.ConnectionClose), // Skipping this for now
 			colorTeaGreen(formatPadRight(result.DNSLookupDone)),
 			colorTeaGreen(formatPadRight(result.TCPConnected)),
@@ -355,7 +355,7 @@ func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 			colorTeaGreen(formatPadLeft(result.DNSLookup)),
 			colorTeaGreen(formatPadLeft(result.TCPConnection)),
 			colorTeaGreen(formatPadLeft(result.WSHandshake)),
-			colorTeaGreen(formatPadLeft(result.MessageRoundTrip)),
+			colorTeaGreen(formatPadLeft(result.MessageRTT)),
 			//formatPadLeft(result.ConnectionClose), // Skipping this for now
 			colorTeaGreen(formatPadRight(result.DNSLookupDone)),
 			colorTeaGreen(formatPadRight(result.TCPConnected)),
