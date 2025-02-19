@@ -156,13 +156,20 @@ func measureLatency(url *url.URL, header http.Header) (*wsstat.Result, interface
 		if err != nil {
 			return nil, nil, handleConnectionError(err, url.String())
 		}
+		if responseArray, ok := response.([]string); ok && len(responseArray) > 0 {
+			response = responseArray[0]
+		}
 		if !*rawOutput {
+			// Automatically decode JSON messages
 			decodedMessage := make(map[string]interface{})
-			err := json.Unmarshal(response.([]byte), &decodedMessage)
-			if err != nil {
-				return nil, nil, fmt.Errorf("error unmarshalling JSON message: %v", err)
+			responseStr, ok := response.(string)
+			if ok {
+				err := json.Unmarshal([]byte(responseStr), &decodedMessage)
+				if err != nil {
+					return nil, nil, fmt.Errorf("error unmarshalling JSON message: %v", err)
+				}
+				response = decodedMessage
 			}
-			response = decodedMessage
 		}
 	} else if *jsonMethod != "" {
 		msg := struct {
