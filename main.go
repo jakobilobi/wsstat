@@ -16,7 +16,7 @@ import (
 	"github.com/jakobilobi/go-wsstat"
 )
 
-const (
+var (
 	wssPrintTemplate = `` +
 		`  DNS Lookup    TCP Connection    TLS Handshake    WS Handshake    Message RTT` + "\n" +
 		`|%s  |      %s  |     %s  |    %s  |   %s  |` + "\n" +
@@ -39,6 +39,7 @@ const (
 
 var (
 	// Input
+	burst        = flag.Int("burst", 1, "number of messages to send in a burst")
 	inputHeaders = flag.String("headers", "", "comma-separated headers for the connection establishing request")
 	jsonMethod   = flag.String("json", "", "a single JSON RPC method to send ")
 	textMessage  = flag.String("text", "", "a text message to send")
@@ -69,6 +70,7 @@ func init() {
 		fmt.Fprintln(os.Stderr, "  -q  "+flag.Lookup("q").Usage)
 		fmt.Fprintln(os.Stderr)
 		fmt.Fprintln(os.Stderr, "Other options:")
+		fmt.Fprintln(os.Stderr, "  -burst     "+flag.Lookup("burst").Usage)
 		fmt.Fprintln(os.Stderr, "  -headers   "+flag.Lookup("headers").Usage)
 		fmt.Fprintln(os.Stderr, "  -raw       "+flag.Lookup("raw").Usage)
 		fmt.Fprintln(os.Stderr, "  -insecure  "+flag.Lookup("insecure").Usage)
@@ -146,7 +148,11 @@ func measureLatency(url *url.URL, header http.Header) (*wsstat.Result, interface
 	var response interface{}
 	var err error
 	if *textMessage != "" {
-		result, response, err = wsstat.MeasureLatency(url, *textMessage, header)
+		msgs := make([]string, *burst)
+		for i := 0; i < *burst; i++ {
+			msgs[i] = *textMessage
+		}
+		result, response, err = wsstat.MeasureLatencyBurst(url, msgs, header)
 		if err != nil {
 			return nil, nil, handleConnectionError(err, url.String())
 		}
@@ -168,7 +174,16 @@ func measureLatency(url *url.URL, header http.Header) (*wsstat.Result, interface
 			ID:         "1",
 			RPCVersion: "2.0",
 		}
-		result, response, err = wsstat.MeasureLatencyJSON(url, msg, header)
+		msgs := make([]interface{}, *burst)
+		for i := 0; i < *burst; i++ {
+			msgs[i] = msg
+		}
+		result, response, err = wsstat.MeasureLatencyJSONBurst(url, msgs, header)
+		if err != nil {
+			return nil, nil, handleConnectionError(err, url.String())
+		}
+	} else if *burst > 1 {
+		result, response, err = wsstat.MeasureLatencyBurst(url, nil, header)
 		if err != nil {
 			return nil, nil, handleConnectionError(err, url.String())
 		}
@@ -327,6 +342,11 @@ func printTimingResults(url *url.URL, result wsstat.Result) {
 // printTimingResultsBasic formats and prints only the most basic WebSocket statistics.
 func printTimingResultsBasic(result wsstat.Result) {
 	fmt.Println()
+	rttString := "Round-trip time"
+	if *burst > 1 {
+		rttString = "Mean round-trip time"
+	}
+	fmt.Printf("%s: %s\n", rttString, colorWSOrange(strconv.FormatInt(result.MessageRTT.Milliseconds(), 10)+"ms"))
 	fmt.Printf("%s: %s\n", "Total time", colorWSOrange(strconv.FormatInt(result.TotalTime.Milliseconds(), 10)+"ms"))
 	fmt.Println()
 }
@@ -392,6 +412,11 @@ func parseValidateInput() (*url.URL, error) {
 	url, err := parseWSURI(args[0])
 	if err != nil {
 		return nil, fmt.Errorf("error parsing input URI: %v", err)
+	}
+
+	if *burst > 1 {
+		wssPrintTemplate = strings.Replace(wssPrintTemplate, "Message RTT", "Mean Message RTT", 1)
+		wsPrintTemplate = strings.Replace(wsPrintTemplate, "Message RTT", "Mean Message RTT", 1)
 	}
 
 	return url, nil
