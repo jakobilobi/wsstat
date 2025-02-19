@@ -44,13 +44,13 @@ var (
 	textMessage  = flag.String("text", "", "a text message to send")
 	// Output
 	rawOutput   = flag.Bool("raw", false, "let printed output be the raw data of the response")
-	quietOutput = flag.Bool("quiet", false, "quiet all output but the response")
 	showVersion = flag.Bool("version", false, "print the program version")
 	version     = "unknown"
 	// Protocol
 	insecure = flag.Bool("insecure", false, "open an insecure WS connection in case of missing scheme in the input")
 	// Verbosity
 	basic   = flag.Bool("b", false, "print basic output")
+	quiet   = flag.Bool("q", false, "quiet all output but the response")
 	verbose = flag.Bool("v", false, "print verbose output")
 )
 
@@ -66,11 +66,11 @@ func init() {
 		fmt.Fprintln(os.Stderr, "Mutually exclusive output options:")
 		fmt.Fprintln(os.Stderr, "  -b  "+flag.Lookup("b").Usage)
 		fmt.Fprintln(os.Stderr, "  -v  "+flag.Lookup("v").Usage)
+		fmt.Fprintln(os.Stderr, "  -q  "+flag.Lookup("q").Usage)
 		fmt.Fprintln(os.Stderr)
 		fmt.Fprintln(os.Stderr, "Other options:")
 		fmt.Fprintln(os.Stderr, "  -headers   "+flag.Lookup("headers").Usage)
 		fmt.Fprintln(os.Stderr, "  -raw       "+flag.Lookup("raw").Usage)
-		fmt.Fprintln(os.Stderr, "  -quiet     "+flag.Lookup("quiet").Usage)
 		fmt.Fprintln(os.Stderr, "  -insecure  "+flag.Lookup("insecure").Usage)
 		fmt.Fprintln(os.Stderr, "  -version   "+flag.Lookup("version").Usage)
 	}
@@ -91,8 +91,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Print the results if there is no expected response or if the quietOutput flag is not set
-	if !*quietOutput {
+	// Print the results if there is no expected response or if the quiet flag is not set
+	if !*quiet {
 		// Print details of the request
 		printRequestDetails(*result)
 
@@ -285,7 +285,7 @@ func printResponse(response interface{}) {
 		return
 	}
 	baseMessage := colorWSOrange("Response") + ": "
-	if *quietOutput {
+	if *quiet {
 		baseMessage = ""
 	} else {
 		fmt.Println()
@@ -310,7 +310,7 @@ func printResponse(response interface{}) {
 	} else if responseBytes, ok := response.([]byte); ok {
 		fmt.Printf("%s%v\n", baseMessage, responseBytes)
 	}
-	if !*quietOutput {
+	if !*quiet {
 		fmt.Println()
 	}
 }
@@ -376,7 +376,7 @@ func parseValidateInput() (*url.URL, error) {
 		os.Exit(0)
 	}
 
-	if *basic && *verbose {
+	if *basic && *verbose || *basic && *quiet || *verbose && *quiet {
 		return nil, fmt.Errorf("mutually exclusive verbosity flags")
 	}
 
