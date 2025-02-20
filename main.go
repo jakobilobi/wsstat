@@ -189,13 +189,8 @@ func measureLatency(url *url.URL, header http.Header) (*wsstat.Result, interface
 		if err != nil {
 			return nil, nil, handleConnectionError(err, url.String())
 		}
-	} else if *burst > 1 {
-		result, response, err = wsstat.MeasureLatencyBurst(url, nil, header)
-		if err != nil {
-			return nil, nil, handleConnectionError(err, url.String())
-		}
 	} else {
-		result, err = wsstat.MeasureLatencyPing(url, header)
+		result, err = wsstat.MeasureLatencyPingBurst(url, *burst, header)
 		if err != nil {
 			return nil, nil, handleConnectionError(err, url.String())
 		}
