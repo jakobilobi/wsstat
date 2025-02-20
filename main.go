@@ -189,13 +189,8 @@ func measureLatency(url *url.URL, header http.Header) (*wsstat.Result, interface
 		if err != nil {
 			return nil, nil, handleConnectionError(err, url.String())
 		}
-	} else if *burst > 1 {
-		result, response, err = wsstat.MeasureLatencyBurst(url, nil, header)
-		if err != nil {
-			return nil, nil, handleConnectionError(err, url.String())
-		}
 	} else {
-		result, err = wsstat.MeasureLatencyPing(url, header)
+		result, err = wsstat.MeasureLatencyPingBurst(url, *burst, header)
 		if err != nil {
 			return nil, nil, handleConnectionError(err, url.String())
 		}
@@ -259,6 +254,7 @@ func printRequestDetails(result wsstat.Result) {
 		for _, ip := range result.IPs {
 			fmt.Printf("  %s: %s\n", colorTeaGreen("IP"), ip)
 		}
+		fmt.Printf("  %s: %d\n", colorTeaGreen("Messages sent:"), result.MessageCount)
 		fmt.Println()
 		if result.TLSState != nil {
 			fmt.Println(colorWSOrange("TLS"))
@@ -291,6 +287,7 @@ func printRequestDetails(result wsstat.Result) {
 	for _, values := range result.IPs {
 		fmt.Printf("%s: %s\n", colorWSOrange("IP"), values)
 	}
+	fmt.Printf("%s: %d\n", colorWSOrange("Messages sent:"), result.MessageCount)
 	for key, values := range result.RequestHeaders {
 		if key == "Sec-WebSocket-Version" {
 			fmt.Printf("%s: %s\n", colorWSOrange("WS version"), strings.Join(values, ", "))
@@ -353,8 +350,20 @@ func printTimingResultsBasic(result wsstat.Result) {
 	if *burst > 1 {
 		rttString = "Mean round-trip time"
 	}
-	fmt.Printf("%s: %s\n", rttString, colorWSOrange(strconv.FormatInt(result.MessageRTT.Milliseconds(), 10)+"ms"))
-	fmt.Printf("%s: %s\n", "Total time", colorWSOrange(strconv.FormatInt(result.TotalTime.Milliseconds(), 10)+"ms"))
+	msgCountString := "message"
+	if result.MessageCount > 1 {
+		msgCountString = "messages"
+	}
+	fmt.Printf(
+		"%s: %s (%d %s)\n",
+		rttString,
+		colorWSOrange(strconv.FormatInt(result.MessageRTT.Milliseconds(), 10)+"ms"),
+		result.MessageCount,
+		msgCountString)
+	fmt.Printf(
+		"%s: %s\n",
+		"Total time",
+		colorWSOrange(strconv.FormatInt(result.TotalTime.Milliseconds(), 10)+"ms"))
 	fmt.Println()
 }
 
@@ -369,7 +378,6 @@ func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 			colorTeaGreen(formatPadLeft(result.TLSHandshake)),
 			colorTeaGreen(formatPadLeft(result.WSHandshake)),
 			colorTeaGreen(formatPadLeft(result.MessageRTT)),
-			//formatPadLeft(result.ConnectionClose), // Skipping this for now
 			colorTeaGreen(formatPadRight(result.DNSLookupDone)),
 			colorTeaGreen(formatPadRight(result.TCPConnected)),
 			colorTeaGreen(formatPadRight(result.TLSHandshakeDone)),
@@ -383,7 +391,6 @@ func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 			colorTeaGreen(formatPadLeft(result.TCPConnection)),
 			colorTeaGreen(formatPadLeft(result.WSHandshake)),
 			colorTeaGreen(formatPadLeft(result.MessageRTT)),
-			//formatPadLeft(result.ConnectionClose), // Skipping this for now
 			colorTeaGreen(formatPadRight(result.DNSLookupDone)),
 			colorTeaGreen(formatPadRight(result.TCPConnected)),
 			colorTeaGreen(formatPadRight(result.WSHandshakeDone)),
