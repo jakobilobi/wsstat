@@ -254,6 +254,7 @@ func printRequestDetails(result wsstat.Result) {
 		for _, ip := range result.IPs {
 			fmt.Printf("  %s: %s\n", colorTeaGreen("IP"), ip)
 		}
+		fmt.Printf("  %s: %d\n", colorTeaGreen("Messages sent:"), result.MessageCount)
 		fmt.Println()
 		if result.TLSState != nil {
 			fmt.Println(colorWSOrange("TLS"))
@@ -286,6 +287,7 @@ func printRequestDetails(result wsstat.Result) {
 	for _, values := range result.IPs {
 		fmt.Printf("%s: %s\n", colorWSOrange("IP"), values)
 	}
+	fmt.Printf("%s: %d\n", colorWSOrange("Messages sent:"), result.MessageCount)
 	for key, values := range result.RequestHeaders {
 		if key == "Sec-WebSocket-Version" {
 			fmt.Printf("%s: %s\n", colorWSOrange("WS version"), strings.Join(values, ", "))
@@ -348,8 +350,20 @@ func printTimingResultsBasic(result wsstat.Result) {
 	if *burst > 1 {
 		rttString = "Mean round-trip time"
 	}
-	fmt.Printf("%s: %s\n", rttString, colorWSOrange(strconv.FormatInt(result.MessageRTT.Milliseconds(), 10)+"ms"))
-	fmt.Printf("%s: %s\n", "Total time", colorWSOrange(strconv.FormatInt(result.TotalTime.Milliseconds(), 10)+"ms"))
+	msgCountString := "message"
+	if result.MessageCount > 1 {
+		msgCountString = "messages"
+	}
+	fmt.Printf(
+		"%s: %s (%d %s)\n",
+		rttString,
+		colorWSOrange(strconv.FormatInt(result.MessageRTT.Milliseconds(), 10)+"ms"),
+		result.MessageCount,
+		msgCountString)
+	fmt.Printf(
+		"%s: %s\n",
+		"Total time",
+		colorWSOrange(strconv.FormatInt(result.TotalTime.Milliseconds(), 10)+"ms"))
 	fmt.Println()
 }
 
