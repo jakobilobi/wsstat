@@ -378,7 +378,6 @@ func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 			colorTeaGreen(formatPadLeft(result.TLSHandshake)),
 			colorTeaGreen(formatPadLeft(result.WSHandshake)),
 			colorTeaGreen(formatPadLeft(result.MessageRTT)),
-			//formatPadLeft(result.ConnectionClose), // Skipping this for now
 			colorTeaGreen(formatPadRight(result.DNSLookupDone)),
 			colorTeaGreen(formatPadRight(result.TCPConnected)),
 			colorTeaGreen(formatPadRight(result.TLSHandshakeDone)),
@@ -392,7 +391,6 @@ func printTimingResultsTiered(url *url.URL, result wsstat.Result) {
 			colorTeaGreen(formatPadLeft(result.TCPConnection)),
 			colorTeaGreen(formatPadLeft(result.WSHandshake)),
 			colorTeaGreen(formatPadLeft(result.MessageRTT)),
-			//formatPadLeft(result.ConnectionClose), // Skipping this for now
 			colorTeaGreen(formatPadRight(result.DNSLookupDone)),
 			colorTeaGreen(formatPadRight(result.TCPConnected)),
 			colorTeaGreen(formatPadRight(result.WSHandshakeDone)),
